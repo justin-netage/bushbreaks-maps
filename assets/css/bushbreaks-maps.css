@@ -1,6 +1,7 @@
 .bbm-wrap {
 	display: grid;
 	grid-template-columns: minmax(280px, 380px) 1fr;
+	grid-template-rows: minmax(0, 1fr);
 	gap: 16px;
 	height: var(--bbm-height, 600px);
 	font-family: inherit;
@@ -57,18 +58,26 @@
 	padding: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
 }
 
 .bbm-card {
 	display: flex;
-	gap: 10px;
-	padding: 10px;
+	gap: 8px;
+	margin: 0;
+	padding: 8px;
 	border: 1px solid #e3e6ea;
 	border-radius: 8px;
 	background: #fff;
 	cursor: pointer;
+	list-style: none;
+	text-indent: 0;
 	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.bbm-card::before,
+.bbm-card::marker {
+	content: none;
 }
 
 .bbm-card:hover,
@@ -78,9 +87,9 @@
 }
 
 .bbm-card-thumb {
-	flex: 0 0 80px;
-	width: 80px;
-	height: 80px;
+	flex: 0 0 72px;
+	width: 72px;
+	height: 72px;
 	background-size: cover;
 	background-position: center;
 	border-radius: 6px;
@@ -130,6 +139,53 @@
 
 .bbm-card-link:hover {
 	text-decoration: underline;
+}
+
+.bbm-card-pricing {
+	margin: 6px 0 4px;
+	font-size: 13px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px;
+}
+
+.bbm-price-special,
+.bbm-price-normal {
+	font-weight: 700;
+	color: #1a1a1a;
+}
+
+.bbm-price-special {
+	color: #2c7a3d;
+}
+
+.bbm-price-was {
+	color: #8a8f96;
+	font-size: 12px;
+}
+
+.bbm-price-unit {
+	color: #6a7280;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.bbm-price-discount {
+	background: #ffe4cf;
+	color: #b54708;
+	font-weight: 600;
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: 10px;
+	letter-spacing: 0.02em;
+}
+
+.bbm-price-valid {
+	flex-basis: 100%;
+	font-size: 11px;
+	color: #6a7280;
+	margin-top: 2px;
 }
 
 .bbm-empty {

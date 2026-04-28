@@ -77,7 +77,107 @@ class Repository {
 			'address'   => $address,
 			'thumbnail' => $thumb ?: '',
 			'excerpt'   => $excerpt,
+			'pricing'   => self::format_pricing( $post->ID, $opts ),
 		];
+	}
+
+	private static function format_pricing( int $post_id, array $opts ): array {
+		$currency       = (string) ( $opts['currency_symbol']         ?? '' );
+		$normal_field   = (string) ( $opts['normal_price_field']      ?? '' );
+		$special_field  = (string) ( $opts['special_price_field']     ?? '' );
+		$desc_field     = (string) ( $opts['price_description_field'] ?? '' );
+		$from_field     = (string) ( $opts['valid_from_field']        ?? '' );
+		$until_field    = (string) ( $opts['valid_until_field']       ?? '' );
+
+		$normal_raw  = $normal_field  !== '' ? get_post_meta( $post_id, $normal_field,  true ) : '';
+		$special_raw = $special_field !== '' ? get_post_meta( $post_id, $special_field, true ) : '';
+		$desc_raw    = $desc_field    !== '' ? get_post_meta( $post_id, $desc_field,    true ) : '';
+		$from_raw    = $from_field    !== '' ? get_post_meta( $post_id, $from_field,    true ) : '';
+		$until_raw   = $until_field   !== '' ? get_post_meta( $post_id, $until_field,   true ) : '';
+
+		$normal  = self::parse_amount( $normal_raw );
+		$special = self::parse_amount( $special_raw );
+		$unit    = is_scalar( $desc_raw ) ? trim( (string) $desc_raw ) : '';
+
+		$discount = null;
+		if ( $normal !== null && $special !== null && $special < $normal ) {
+			$discount = (int) round( ( ( $normal - $special ) / $normal ) * 100 );
+		}
+
+		$from  = self::format_date_safe( (string) $from_raw );
+		$until = self::format_date_safe( (string) $until_raw );
+
+		return [
+			'normal'      => $normal  !== null ? self::format_money( $normal,  $currency ) : '',
+			'special'     => $special !== null ? self::format_money( $special, $currency ) : '',
+			'unit'        => ( $normal !== null || $special !== null ) ? $unit : '',
+			'discount'    => $discount,
+			'valid_label' => $special !== null ? self::valid_label( $from, $until ) : '',
+		];
+	}
+
+	/**
+	 * Parse a Pods currency value into a positive float, or null.
+	 * Tolerates formatted strings such as "3,100", "R 3 100", "3,100.50".
+	 */
+	private static function parse_amount( $raw ): ?float {
+		if ( $raw === null || $raw === '' || ! is_scalar( $raw ) ) {
+			return null;
+		}
+		$clean = preg_replace( '/[^\d.\-]/', '', (string) $raw );
+		if ( $clean === '' || ! is_numeric( $clean ) ) {
+			return null;
+		}
+		$val = (float) $clean;
+		return $val > 0 ? $val : null;
+	}
+
+	private static function format_money( float $amount, string $currency ): string {
+		$decimals  = ( floor( $amount ) === $amount ) ? 0 : 2;
+		$formatted = number_format( $amount, $decimals, '.', '' );
+		$currency  = trim( $currency );
+		return $currency !== '' ? $currency . ' ' . $formatted : $formatted;
+	}
+
+	private static function format_date_safe( string $value ): string {
+		$value = trim( $value );
+		if ( $value === '' ) {
+			return '';
+		}
+
+		$ts = false;
+		foreach ( [ 'd-m-Y', 'Y-m-d', 'd/m/Y', 'Y-m-d H:i:s' ] as $fmt ) {
+			$dt = \DateTime::createFromFormat( $fmt, $value );
+			if ( $dt instanceof \DateTime ) {
+				$ts = $dt->getTimestamp();
+				break;
+			}
+		}
+		if ( $ts === false ) {
+			$ts = strtotime( $value );
+		}
+		if ( $ts === false ) {
+			return '';
+		}
+
+		$format = (string) get_option( 'date_format', 'd M Y' );
+		return date_i18n( $format, $ts );
+	}
+
+	private static function valid_label( string $from, string $until ): string {
+		if ( $from !== '' && $until !== '' ) {
+			/* translators: 1: start date, 2: end date */
+			return sprintf( __( 'Valid %1$s – %2$s', 'bushbreaks-maps' ), $from, $until );
+		}
+		if ( $from !== '' ) {
+			/* translators: %s: start date */
+			return sprintf( __( 'Valid from %s', 'bushbreaks-maps' ), $from );
+		}
+		if ( $until !== '' ) {
+			/* translators: %s: end date */
+			return sprintf( __( 'Valid until %s', 'bushbreaks-maps' ), $until );
+		}
+		return '';
 	}
 
 	/**

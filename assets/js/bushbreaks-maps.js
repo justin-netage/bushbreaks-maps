@@ -29,6 +29,36 @@
 	var markersById = {};
 	var allMarkers = [];
 
+	function pricingHtml(pricing) {
+		if (!pricing) return '';
+		var hasSpecial = !!pricing.special;
+		var hasNormal = !!pricing.normal;
+		if (!hasSpecial && !hasNormal) return '';
+		var html = '<div class="bbm-card-pricing">';
+		if (hasSpecial) {
+			html += '<span class="bbm-price-special">' + escapeHtml(pricing.special) + '</span>';
+			if (pricing.unit) {
+				html += ' <span class="bbm-price-unit">' + escapeHtml(pricing.unit) + '</span>';
+			}
+			if (hasNormal) {
+				html += ' <s class="bbm-price-was">' + escapeHtml(pricing.normal) + '</s>';
+			}
+			if (pricing.discount != null) {
+				html += ' <span class="bbm-price-discount">&minus;' + parseInt(pricing.discount, 10) + '%</span>';
+			}
+			if (pricing.valid_label) {
+				html += '<div class="bbm-price-valid">' + escapeHtml(pricing.valid_label) + '</div>';
+			}
+		} else {
+			html += '<span class="bbm-price-normal">' + escapeHtml(pricing.normal) + '</span>';
+			if (pricing.unit) {
+				html += ' <span class="bbm-price-unit">' + escapeHtml(pricing.unit) + '</span>';
+			}
+		}
+		html += '</div>';
+		return html;
+	}
+
 	function popupHtml(item) {
 		var parts = [];
 		if (item.thumbnail) {
@@ -38,6 +68,7 @@
 		if (item.address) {
 			parts.push('<div class="bbm-card-address">' + escapeHtml(item.address) + '</div>');
 		}
+		parts.push(pricingHtml(item.pricing));
 		if (item.excerpt) {
 			parts.push('<p class="bbm-card-excerpt" style="-webkit-line-clamp:3;">' + escapeHtml(item.excerpt) + '</p>');
 		}
@@ -132,6 +163,7 @@
 			if (item.address) {
 				html += '<div class="bbm-card-address">' + escapeHtml(item.address) + '</div>';
 			}
+			html += pricingHtml(item.pricing);
 			if (item.excerpt) {
 				html += '<p class="bbm-card-excerpt">' + escapeHtml(item.excerpt) + '</p>';
 			}

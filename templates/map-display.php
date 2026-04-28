@@ -41,6 +41,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<?php if ( $item['address'] ) : ?>
 								<div class="bbm-card-address"><?php echo esc_html( $item['address'] ); ?></div>
 							<?php endif; ?>
+							<?php if ( $item['pricing']['special'] || $item['pricing']['normal'] ) : ?>
+								<div class="bbm-card-pricing">
+									<?php if ( $item['pricing']['special'] ) : ?>
+										<span class="bbm-price-special"><?php echo esc_html( $item['pricing']['special'] ); ?></span>
+										<?php if ( $item['pricing']['unit'] ) : ?>
+											<span class="bbm-price-unit"><?php echo esc_html( $item['pricing']['unit'] ); ?></span>
+										<?php endif; ?>
+										<?php if ( $item['pricing']['normal'] ) : ?>
+											<s class="bbm-price-was"><?php echo esc_html( $item['pricing']['normal'] ); ?></s>
+										<?php endif; ?>
+										<?php if ( $item['pricing']['discount'] !== null ) : ?>
+											<span class="bbm-price-discount">&minus;<?php echo (int) $item['pricing']['discount']; ?>%</span>
+										<?php endif; ?>
+										<?php if ( $item['pricing']['valid_label'] ) : ?>
+											<div class="bbm-price-valid"><?php echo esc_html( $item['pricing']['valid_label'] ); ?></div>
+										<?php endif; ?>
+									<?php else : ?>
+										<span class="bbm-price-normal"><?php echo esc_html( $item['pricing']['normal'] ); ?></span>
+										<?php if ( $item['pricing']['unit'] ) : ?>
+											<span class="bbm-price-unit"><?php echo esc_html( $item['pricing']['unit'] ); ?></span>
+										<?php endif; ?>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 							<?php if ( $item['excerpt'] ) : ?>
 								<p class="bbm-card-excerpt"><?php echo esc_html( $item['excerpt'] ); ?></p>
 							<?php endif; ?>
