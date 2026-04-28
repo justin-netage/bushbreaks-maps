@@ -26,7 +26,7 @@ class Settings {
 			'valid_from_field'    => 'valid_from',
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
-			'thumbnail_size'      => 'medium',
+			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
