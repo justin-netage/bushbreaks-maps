@@ -157,6 +157,12 @@
 	font-size: 12px;
 }
 
+.bbm-price-unit {
+	color: #6a7280;
+	font-size: 12px;
+	font-weight: 500;
+}
+
 .bbm-price-discount {
 	background: #ffe4cf;
 	color: #b54708;

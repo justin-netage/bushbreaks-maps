@@ -37,6 +37,9 @@
 		var html = '<div class="bbm-card-pricing">';
 		if (hasSpecial) {
 			html += '<span class="bbm-price-special">' + escapeHtml(pricing.special) + '</span>';
+			if (pricing.unit) {
+				html += ' <span class="bbm-price-unit">' + escapeHtml(pricing.unit) + '</span>';
+			}
 			if (hasNormal) {
 				html += ' <s class="bbm-price-was">' + escapeHtml(pricing.normal) + '</s>';
 			}
@@ -48,6 +51,9 @@
 			}
 		} else {
 			html += '<span class="bbm-price-normal">' + escapeHtml(pricing.normal) + '</span>';
+			if (pricing.unit) {
+				html += ' <span class="bbm-price-unit">' + escapeHtml(pricing.unit) + '</span>';
+			}
 		}
 		html += '</div>';
 		return html;

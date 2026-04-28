@@ -45,6 +45,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<div class="bbm-card-pricing">
 									<?php if ( $item['pricing']['special'] ) : ?>
 										<span class="bbm-price-special"><?php echo esc_html( $item['pricing']['special'] ); ?></span>
+										<?php if ( $item['pricing']['unit'] ) : ?>
+											<span class="bbm-price-unit"><?php echo esc_html( $item['pricing']['unit'] ); ?></span>
+										<?php endif; ?>
 										<?php if ( $item['pricing']['normal'] ) : ?>
 											<s class="bbm-price-was"><?php echo esc_html( $item['pricing']['normal'] ); ?></s>
 										<?php endif; ?>
@@ -56,6 +59,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<?php endif; ?>
 									<?php else : ?>
 										<span class="bbm-price-normal"><?php echo esc_html( $item['pricing']['normal'] ); ?></span>
+										<?php if ( $item['pricing']['unit'] ) : ?>
+											<span class="bbm-price-unit"><?php echo esc_html( $item['pricing']['unit'] ); ?></span>
+										<?php endif; ?>
 									<?php endif; ?>
 								</div>
 							<?php endif; ?>

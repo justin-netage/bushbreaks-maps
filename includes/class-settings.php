@@ -18,8 +18,9 @@ class Settings {
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
 			'image_field'         => 'banner',
-			'normal_price_field'  => 'normal_price',
-			'special_price_field' => 'special_price',
+			'normal_price_field'      => 'normal_price',
+			'special_price_field'     => 'special_price',
+			'price_description_field' => 'price_description',
 			'valid_from_field'    => 'valid_from',
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
@@ -107,7 +108,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'normal_price_field', 'special_price_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -190,6 +191,13 @@ class Settings {
 					<tr>
 						<th><label for="bbm_special_price"><?php esc_html_e( 'Special price field', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_special_price" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[special_price_field]" type="text" value="<?php echo esc_attr( $opts['special_price_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_price_desc"><?php esc_html_e( 'Price description field', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_price_desc" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[price_description_field]" type="text" value="<?php echo esc_attr( $opts['price_description_field'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'Short unit shown next to the price (e.g. ppn, pn, ppp).', 'bushbreaks-maps' ); ?></p>
+						</td>
 					</tr>
 					<tr>
 						<th><label for="bbm_valid_from"><?php esc_html_e( 'Special valid-from field', 'bushbreaks-maps' ); ?></label></th>

@@ -82,19 +82,22 @@ class Repository {
 	}
 
 	private static function format_pricing( int $post_id, array $opts ): array {
-		$currency       = (string) ( $opts['currency_symbol']     ?? '' );
-		$normal_field   = (string) ( $opts['normal_price_field']  ?? '' );
-		$special_field  = (string) ( $opts['special_price_field'] ?? '' );
-		$from_field     = (string) ( $opts['valid_from_field']    ?? '' );
-		$until_field    = (string) ( $opts['valid_until_field']   ?? '' );
+		$currency       = (string) ( $opts['currency_symbol']         ?? '' );
+		$normal_field   = (string) ( $opts['normal_price_field']      ?? '' );
+		$special_field  = (string) ( $opts['special_price_field']     ?? '' );
+		$desc_field     = (string) ( $opts['price_description_field'] ?? '' );
+		$from_field     = (string) ( $opts['valid_from_field']        ?? '' );
+		$until_field    = (string) ( $opts['valid_until_field']       ?? '' );
 
 		$normal_raw  = $normal_field  !== '' ? get_post_meta( $post_id, $normal_field,  true ) : '';
 		$special_raw = $special_field !== '' ? get_post_meta( $post_id, $special_field, true ) : '';
+		$desc_raw    = $desc_field    !== '' ? get_post_meta( $post_id, $desc_field,    true ) : '';
 		$from_raw    = $from_field    !== '' ? get_post_meta( $post_id, $from_field,    true ) : '';
 		$until_raw   = $until_field   !== '' ? get_post_meta( $post_id, $until_field,   true ) : '';
 
 		$normal  = self::parse_amount( $normal_raw );
 		$special = self::parse_amount( $special_raw );
+		$unit    = is_scalar( $desc_raw ) ? trim( (string) $desc_raw ) : '';
 
 		$discount = null;
 		if ( $normal !== null && $special !== null && $special < $normal ) {
@@ -107,6 +110,7 @@ class Repository {
 		return [
 			'normal'      => $normal  !== null ? self::format_money( $normal,  $currency ) : '',
 			'special'     => $special !== null ? self::format_money( $special, $currency ) : '',
+			'unit'        => ( $normal !== null || $special !== null ) ? $unit : '',
 			'discount'    => $discount,
 			'valid_label' => $special !== null ? self::valid_label( $from, $until ) : '',
 		];
