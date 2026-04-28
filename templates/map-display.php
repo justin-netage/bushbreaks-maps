@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 ?>
 <div class="bbm-wrap" style="--bbm-height: <?php echo esc_attr( $height ); ?>;">
-	<div class="bbm-sidebar">
+	<div class="bbm-filters">
 		<div class="bbm-search">
 			<input
 				type="search"
@@ -30,7 +30,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 			<div class="bbm-category-chips" role="list"></div>
 		</div>
+	</div>
 
+	<div class="bbm-map" id="bbm-map" role="application" aria-label="Map of accommodations"></div>
+
+	<div class="bbm-list-region">
 		<div class="bbm-loader" role="status" aria-live="polite" hidden>
 			<span class="bbm-loader-spinner" aria-hidden="true"></span>
 			<span class="bbm-loader-text"><?php echo esc_html( $i18n['searching'] ); ?></span>
@@ -91,6 +95,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</ul>
 		</div>
 	</div>
-
-	<div class="bbm-map" id="bbm-map" role="application" aria-label="Map of accommodations"></div>
 </div>
