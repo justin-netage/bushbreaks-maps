@@ -85,6 +85,7 @@ class Shortcode {
 					'listHeading'       => __( 'Lodges', 'bushbreaks-maps' ),
 					'noResults'         => __( 'No lodges match your search.', 'bushbreaks-maps' ),
 					'viewDetails'       => __( 'View details', 'bushbreaks-maps' ),
+					'searching'         => __( 'Searching lodges…', 'bushbreaks-maps' ),
 				],
 			]
 		);
@@ -96,6 +97,7 @@ class Shortcode {
 			'searchPlaceholder' => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
 			'listHeading'       => __( 'Lodges', 'bushbreaks-maps' ),
 			'viewDetails'       => __( 'View details', 'bushbreaks-maps' ),
+			'searching'         => __( 'Searching lodges…', 'bushbreaks-maps' ),
 		];
 		include $template;
 		return (string) ob_get_clean();
