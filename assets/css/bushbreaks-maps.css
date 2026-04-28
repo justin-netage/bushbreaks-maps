@@ -51,33 +51,35 @@
 	color: #555;
 }
 
-.bbm-list-items,
-.bbm-results-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
+.bbm-wrap ul.bbm-list-items,
+.bbm-wrap ul.bbm-results-list {
+	list-style: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 
-.bbm-card {
+.bbm-wrap li.bbm-card {
 	display: flex;
-	gap: 8px;
-	margin: 0;
-	padding: 8px;
+	flex-direction: column;
+	margin: 0 !important;
+	padding: 0;
 	border: 1px solid #e3e6ea;
 	border-radius: 8px;
 	background: #fff;
 	cursor: pointer;
-	list-style: none;
-	text-indent: 0;
+	overflow: hidden;
+	list-style: none !important;
+	text-indent: 0 !important;
 	transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.bbm-card::before,
-.bbm-card::marker {
-	content: none;
+.bbm-wrap li.bbm-card::before,
+.bbm-wrap li.bbm-card::marker {
+	content: none !important;
+	display: none !important;
 }
 
 .bbm-card:hover,
@@ -87,18 +89,18 @@
 }
 
 .bbm-card-thumb {
-	flex: 0 0 72px;
-	width: 72px;
-	height: 72px;
+	width: 100%;
+	aspect-ratio: 16 / 9;
 	background-size: cover;
 	background-position: center;
-	border-radius: 6px;
+	background-color: #eef0f2;
 }
 
 .bbm-card-body {
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
+	padding: 10px;
 }
 
 .bbm-card-title {
