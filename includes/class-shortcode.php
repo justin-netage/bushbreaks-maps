@@ -15,6 +15,9 @@ class Shortcode {
 	}
 
 	public function register_assets(): void {
+		$api_key = trim( (string) Settings::get( 'google_maps_api_key' ) );
+
+		// Plugin stylesheet — Leaflet CSS only enqueued when no API key.
 		wp_register_style(
 			'leaflet',
 			'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
@@ -28,19 +31,45 @@ class Shortcode {
 			'1.9.4',
 			true
 		);
+
+		$style_deps  = $api_key === '' ? [ 'leaflet' ] : [];
+		$script_deps = $api_key === '' ? [ 'leaflet' ] : [];
+
 		wp_register_style(
 			'bushbreaks-maps',
 			BUSHBREAKS_MAPS_URL . 'assets/css/bushbreaks-maps.css',
-			[ 'leaflet' ],
+			$style_deps,
 			BUSHBREAKS_MAPS_VERSION
 		);
 		wp_register_script(
 			'bushbreaks-maps',
 			BUSHBREAKS_MAPS_URL . 'assets/js/bushbreaks-maps.js',
-			[ 'leaflet' ],
+			$script_deps,
 			BUSHBREAKS_MAPS_VERSION,
 			true
 		);
+
+		if ( $api_key !== '' ) {
+			$google_url = add_query_arg(
+				[
+					'key'      => $api_key,
+					'callback' => 'BushbreaksMapsBoot',
+					'loading'  => 'async',
+					'v'        => 'weekly',
+				],
+				'https://maps.googleapis.com/maps/api/js'
+			);
+			wp_register_script(
+				'bushbreaks-maps-google',
+				$google_url,
+				[ 'bushbreaks-maps' ],
+				null,
+				[
+					'strategy'  => 'async',
+					'in_footer' => true,
+				]
+			);
+		}
 	}
 
 	public function render( $atts ): string {
@@ -61,8 +90,14 @@ class Shortcode {
 			]
 		);
 
+		$api_key = trim( (string) ( $opts['google_maps_api_key'] ?? '' ) );
+		$provider = $api_key !== '' ? 'google' : 'leaflet';
+
 		wp_enqueue_style( 'bushbreaks-maps' );
 		wp_enqueue_script( 'bushbreaks-maps' );
+		if ( $provider === 'google' ) {
+			wp_enqueue_script( 'bushbreaks-maps-google' );
+		}
 
 		wp_localize_script(
 			'bushbreaks-maps',
@@ -70,6 +105,7 @@ class Shortcode {
 			[
 				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( 'bushbreaks_maps' ),
+				'provider'  => $provider,
 				'locations' => $all_locations,
 				'center'    => [
 					'lat' => (float) $opts['map_center_lat'],
