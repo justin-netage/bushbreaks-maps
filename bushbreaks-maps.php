@@ -19,6 +19,8 @@ define( 'BUSHBREAKS_MAPS_URL', plugin_dir_url( __FILE__ ) );
 
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-settings.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-repository.php';
+require_once BUSHBREAKS_MAPS_DIR . 'includes/class-geocoder.php';
+require_once BUSHBREAKS_MAPS_DIR . 'includes/class-coords-sync.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-shortcode.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-ajax.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-plugin.php';

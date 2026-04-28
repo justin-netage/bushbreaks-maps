@@ -15,7 +15,9 @@ class Settings {
 			'lat_field'      => 'latitude',
 			'lng_field'      => 'longitude',
 			'featured_field' => 'featured',
-			'address_field'  => 'address',
+			'address_field'  => 'location',
+			'iframe_field'   => 'google_maps_iframe',
+			'location_field' => 'location',
 			'thumbnail_size' => 'medium',
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
@@ -45,13 +47,41 @@ class Settings {
 	}
 
 	public function add_menu(): void {
-		add_options_page(
+		$hook = add_options_page(
 			__( 'Bushbreaks Maps', 'bushbreaks-maps' ),
 			__( 'Bushbreaks Maps', 'bushbreaks-maps' ),
 			'manage_options',
 			'bushbreaks-maps',
 			[ $this, 'render_page' ]
 		);
+
+		add_action( 'admin_enqueue_scripts', function ( $current ) use ( $hook ) {
+			if ( $current !== $hook ) {
+				return;
+			}
+			wp_enqueue_script(
+				'bushbreaks-maps-admin',
+				BUSHBREAKS_MAPS_URL . 'assets/js/bbm-admin.js',
+				[],
+				BUSHBREAKS_MAPS_VERSION,
+				true
+			);
+			wp_localize_script(
+				'bushbreaks-maps-admin',
+				'BushbreaksMapsAdmin',
+				[
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( 'bushbreaks_maps_backfill' ),
+					'i18n'    => [
+						'starting'    => __( 'Starting…', 'bushbreaks-maps' ),
+						'progress'    => __( 'Processed %1$s of %2$s…', 'bushbreaks-maps' ),
+						'done'        => __( 'Done. Processed %1$s of %2$s.', 'bushbreaks-maps' ),
+						'error'       => __( 'Error during backfill.', 'bushbreaks-maps' ),
+						'networkError'=> __( 'Network error.', 'bushbreaks-maps' ),
+					],
+				]
+			);
+		} );
 	}
 
 	public function register_settings(): void {
@@ -72,7 +102,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'featured_field', 'address_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'featured_field', 'address_field', 'iframe_field', 'location_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -124,8 +154,22 @@ class Settings {
 						<td><input id="bbm_featured" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[featured_field]" type="text" value="<?php echo esc_attr( $opts['featured_field'] ); ?>" class="regular-text"></td>
 					</tr>
 					<tr>
-						<th><label for="bbm_address"><?php esc_html_e( 'Address field (optional)', 'bushbreaks-maps' ); ?></label></th>
+						<th><label for="bbm_address"><?php esc_html_e( 'Address field (shown on cards)', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_address" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[address_field]" type="text" value="<?php echo esc_attr( $opts['address_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_iframe"><?php esc_html_e( 'Google Maps iframe field', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_iframe" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[iframe_field]" type="text" value="<?php echo esc_attr( $opts['iframe_field'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'When set, lat/lng are extracted from the iframe on save (preferred source).', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_location"><?php esc_html_e( 'Location text field (geocoded)', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_location" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[location_field]" type="text" value="<?php echo esc_attr( $opts['location_field'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'Used as a fallback when no iframe is set. Geocoded via OpenStreetMap Nominatim and cached.', 'bushbreaks-maps' ); ?></p>
+						</td>
 					</tr>
 					<tr>
 						<th><label for="bbm_thumb"><?php esc_html_e( 'Thumbnail size', 'bushbreaks-maps' ); ?></label></th>
@@ -158,6 +202,15 @@ class Settings {
 				</table>
 				<?php submit_button(); ?>
 			</form>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Backfill coordinates', 'bushbreaks-maps' ); ?></h2>
+			<p><?php esc_html_e( 'Resolve coordinates for every accommodation: iframe first, then geocode the location text. Already-cached entries are skipped.', 'bushbreaks-maps' ); ?></p>
+			<p>
+				<button type="button" class="button button-primary" id="bbm-backfill"><?php esc_html_e( 'Run backfill', 'bushbreaks-maps' ); ?></button>
+				<span id="bbm-backfill-status" style="margin-left:10px;"></span>
+			</p>
 		</div>
 		<?php
 	}

@@ -20,5 +20,6 @@ final class Plugin {
 		( new Settings() )->register();
 		( new Shortcode() )->register();
 		( new Ajax() )->register();
+		( new Coords_Sync() )->register();
 	}
 }
