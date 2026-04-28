@@ -18,7 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				placeholder="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 				aria-label="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 			/>
-			<span class="bbm-search-spinner" aria-hidden="true"></span>
+		</div>
+
+		<div class="bbm-loader" role="status" aria-live="polite" hidden>
+			<span class="bbm-loader-spinner" aria-hidden="true"></span>
+			<span class="bbm-loader-text"><?php echo esc_html( $i18n['searching'] ); ?></span>
 		</div>
 
 		<div class="bbm-results" hidden>
