@@ -13,6 +13,7 @@
 
 	var wrap = mapEl.closest('.bbm-wrap');
 	var searchInput = wrap ? wrap.querySelector('.bbm-search-input') : null;
+	var searchEl = wrap ? wrap.querySelector('.bbm-search') : null;
 	var resultsEl = wrap ? wrap.querySelector('.bbm-results') : null;
 	var resultsList = wrap ? wrap.querySelector('.bbm-results-list') : null;
 	var listEl = wrap ? wrap.querySelector('.bbm-list') : null;
@@ -200,9 +201,15 @@
 	var searchTimer = null;
 	var lastReq = 0;
 
+	function setLoading(on) {
+		if (!searchEl) return;
+		searchEl.classList.toggle('is-loading', !!on);
+	}
+
 	function runSearch(term) {
 		term = term.trim();
 		if (term === '') {
+			setLoading(false);
 			showList();
 			return;
 		}
@@ -210,17 +217,22 @@
 		var reqId = ++lastReq;
 		var url = data.ajaxUrl + '?action=bushbreaks_maps_search&nonce=' + encodeURIComponent(data.nonce) + '&q=' + encodeURIComponent(term);
 
+		setLoading(true);
+
 		fetch(url, { credentials: 'same-origin' })
 			.then(function (r) { return r.json(); })
 			.then(function (json) {
 				if (reqId !== lastReq) return;
+				setLoading(false);
 				if (!json || !json.success) return;
 				var items = (json.data && json.data.results) || [];
 				renderResults(items);
 				showResults();
 				fitToItems(items);
 			})
-			.catch(function () { /* ignore */ });
+			.catch(function () {
+				if (reqId === lastReq) setLoading(false);
+			});
 	}
 
 	if (searchInput) {
