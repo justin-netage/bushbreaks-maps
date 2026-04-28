@@ -122,7 +122,7 @@
 		if (!root) return;
 		root.querySelectorAll('.bbm-card').forEach(function (card) {
 			card.addEventListener('click', function (e) {
-				if (e.target.closest('a')) {
+				if (e.target.closest('.bbm-card-link')) {
 					return;
 				}
 				var id = parseInt(card.getAttribute('data-id'), 10);
@@ -159,7 +159,7 @@
 				html += '<div class="bbm-card-thumb" style="background-image:url(\'' + escapeAttr(item.thumbnail) + '\')"></div>';
 			}
 			html += '<div class="bbm-card-body">';
-			html += '<a class="bbm-card-title" href="' + escapeAttr(item.permalink) + '">' + escapeHtml(item.title) + '</a>';
+			html += '<span class="bbm-card-title">' + escapeHtml(item.title) + '</span>';
 			if (item.address) {
 				html += '<div class="bbm-card-address">' + escapeHtml(item.address) + '</div>';
 			}

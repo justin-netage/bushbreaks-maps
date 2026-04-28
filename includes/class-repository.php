@@ -134,7 +134,7 @@ class Repository {
 
 	private static function format_money( float $amount, string $currency ): string {
 		$decimals  = ( floor( $amount ) === $amount ) ? 0 : 2;
-		$formatted = number_format( $amount, $decimals, '.', '' );
+		$formatted = number_format( $amount, $decimals, '.', ',' );
 		$currency  = trim( $currency );
 		return $currency !== '' ? $currency . ' ' . $formatted : $formatted;
 	}
