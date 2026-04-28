@@ -16,9 +16,8 @@ class Repository {
 		$opts = Settings::all();
 
 		$defaults = [
-			'search'        => '',
-			'featured_only' => false,
-			'limit'         => -1,
+			'search' => '',
+			'limit'  => -1,
 		];
 		$args = array_merge( $defaults, $args );
 
@@ -33,27 +32,6 @@ class Repository {
 
 		if ( $args['search'] !== '' ) {
 			$query_args['s'] = $args['search'];
-		}
-
-		if ( $args['featured_only'] && $opts['featured_field'] !== '' ) {
-			$query_args['meta_query'] = [
-				'relation' => 'OR',
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => '1',
-					'compare' => '=',
-				],
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => 'yes',
-					'compare' => '=',
-				],
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => 'true',
-					'compare' => '=',
-				],
-			];
 		}
 
 		$query = new \WP_Query( $query_args );
@@ -82,7 +60,11 @@ class Repository {
 			$address = (string) get_post_meta( $post->ID, $opts['address_field'], true );
 		}
 
-		$thumb = get_the_post_thumbnail_url( $post->ID, $opts['thumbnail_size'] ?: 'medium' );
+		$size  = $opts['thumbnail_size'] ?: 'medium';
+		$thumb = self::resolve_image( $post->ID, (string) ( $opts['image_field'] ?? '' ), $size );
+		if ( $thumb === '' ) {
+			$thumb = (string) get_the_post_thumbnail_url( $post->ID, $size );
+		}
 
 		$excerpt = has_excerpt( $post ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 28 );
 
@@ -95,19 +77,58 @@ class Repository {
 			'address'   => $address,
 			'thumbnail' => $thumb ?: '',
 			'excerpt'   => $excerpt,
-			'featured'  => self::is_featured( $post->ID, $opts ),
 		];
 	}
 
-	private static function is_featured( int $post_id, array $opts ): bool {
-		if ( $opts['featured_field'] === '' ) {
-			return false;
+	/**
+	 * Resolve a Pods image/file field to a URL. Handles attachment ID,
+	 * array of attachment data (single or multiple), and plain URL strings.
+	 */
+	private static function resolve_image( int $post_id, string $field, string $size ): string {
+		if ( $field === '' ) {
+			return '';
 		}
-		$val = get_post_meta( $post_id, $opts['featured_field'], true );
+
+		$val = get_post_meta( $post_id, $field, true );
+		if ( empty( $val ) ) {
+			return '';
+		}
+
+		if ( is_string( $val ) ) {
+			if ( ctype_digit( $val ) ) {
+				$url = wp_get_attachment_image_url( (int) $val, $size );
+				return $url ?: '';
+			}
+			if ( filter_var( $val, FILTER_VALIDATE_URL ) ) {
+				return $val;
+			}
+			return '';
+		}
+
+		if ( is_numeric( $val ) ) {
+			$url = wp_get_attachment_image_url( (int) $val, $size );
+			return $url ?: '';
+		}
+
 		if ( is_array( $val ) ) {
-			$val = reset( $val );
+			// Multiple-image field stores an array of attachment arrays — take the first.
+			$first = reset( $val );
+			if ( is_array( $first ) && ( isset( $first['ID'] ) || isset( $first['id'] ) || isset( $first['guid'] ) ) ) {
+				$val = $first;
+			}
+
+			$id = $val['ID'] ?? $val['id'] ?? null;
+			if ( is_numeric( $id ) ) {
+				$url = wp_get_attachment_image_url( (int) $id, $size );
+				if ( $url ) {
+					return $url;
+				}
+			}
+			if ( isset( $val['guid'] ) && is_string( $val['guid'] ) && filter_var( $val['guid'], FILTER_VALIDATE_URL ) ) {
+				return $val['guid'];
+			}
 		}
-		$val = strtolower( (string) $val );
-		return in_array( $val, [ '1', 'yes', 'true', 'on' ], true );
+
+		return '';
 	}
 }

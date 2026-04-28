@@ -15,7 +15,7 @@
 	var searchInput = wrap ? wrap.querySelector('.bbm-search-input') : null;
 	var resultsEl = wrap ? wrap.querySelector('.bbm-results') : null;
 	var resultsList = wrap ? wrap.querySelector('.bbm-results-list') : null;
-	var featuredEl = wrap ? wrap.querySelector('.bbm-featured') : null;
+	var listEl = wrap ? wrap.querySelector('.bbm-list') : null;
 
 	var map = L.map(mapEl, {
 		scrollWheelZoom: true,
@@ -104,7 +104,7 @@
 		});
 	}
 
-	bindCardInteractions(featuredEl);
+	bindCardInteractions(listEl);
 
 	function renderResults(items) {
 		if (!resultsList || !resultsEl) return;
@@ -145,12 +145,12 @@
 
 	function showResults() {
 		if (resultsEl) resultsEl.hidden = false;
-		if (featuredEl) featuredEl.hidden = true;
+		if (listEl) listEl.hidden = true;
 	}
 
-	function showFeatured() {
+	function showList() {
 		if (resultsEl) resultsEl.hidden = true;
-		if (featuredEl) featuredEl.hidden = false;
+		if (listEl) listEl.hidden = false;
 	}
 
 	function fitToItems(items) {
@@ -171,7 +171,7 @@
 	function runSearch(term) {
 		term = term.trim();
 		if (term === '') {
-			showFeatured();
+			showList();
 			return;
 		}
 

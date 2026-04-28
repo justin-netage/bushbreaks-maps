@@ -55,10 +55,9 @@ class Shortcode {
 		$opts = Settings::all();
 
 		$all_locations = Repository::query( [ 'limit' => -1 ] );
-		$featured      = Repository::query(
+		$list_items    = Repository::query(
 			[
-				'featured_only' => true,
-				'limit'         => (int) $opts['featured_limit'],
+				'limit' => (int) $opts['list_limit'],
 			]
 		);
 
@@ -83,8 +82,8 @@ class Shortcode {
 				],
 				'i18n'      => [
 					'searchPlaceholder' => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-					'featuredHeading'   => __( 'Featured accommodations', 'bushbreaks-maps' ),
-					'noResults'         => __( 'No accommodations match your search.', 'bushbreaks-maps' ),
+					'listHeading'       => __( 'Lodges', 'bushbreaks-maps' ),
+					'noResults'         => __( 'No lodges match your search.', 'bushbreaks-maps' ),
 					'viewDetails'       => __( 'View details', 'bushbreaks-maps' ),
 				],
 			]
@@ -93,10 +92,9 @@ class Shortcode {
 		ob_start();
 		$template = BUSHBREAKS_MAPS_DIR . 'templates/map-display.php';
 		$height   = $atts['height'];
-		$featured_items = $featured;
 		$i18n     = [
 			'searchPlaceholder' => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-			'featuredHeading'   => __( 'Featured accommodations', 'bushbreaks-maps' ),
+			'listHeading'       => __( 'Lodges', 'bushbreaks-maps' ),
 			'viewDetails'       => __( 'View details', 'bushbreaks-maps' ),
 		];
 		include $template;

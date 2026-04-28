@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * @var string $height
- * @var array  $featured_items
+ * @var array  $list_items
  * @var array  $i18n
  */
 ?>
@@ -24,10 +24,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<ul class="bbm-results-list"></ul>
 		</div>
 
-		<div class="bbm-featured">
-			<h3 class="bbm-featured-heading"><?php echo esc_html( $i18n['featuredHeading'] ); ?></h3>
-			<ul class="bbm-featured-list">
-				<?php foreach ( $featured_items as $item ) : ?>
+		<div class="bbm-list">
+			<h3 class="bbm-list-heading"><?php echo esc_html( $i18n['listHeading'] ); ?></h3>
+			<ul class="bbm-list-items">
+				<?php foreach ( $list_items as $item ) : ?>
 					<li class="bbm-card" data-id="<?php echo esc_attr( (string) $item['id'] ); ?>"
 						<?php if ( $item['lat'] !== null && $item['lng'] !== null ) : ?>
 						data-lat="<?php echo esc_attr( (string) $item['lat'] ); ?>"
