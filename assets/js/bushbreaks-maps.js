@@ -266,6 +266,12 @@
 					return;
 				}
 				var items = (json.data && json.data.results) || [];
+				if (items.length === 0) {
+					renderResults(items);
+					showResults();
+					showAllMarkers();
+					return;
+				}
 				var ids = items.map(function (i) { return i.id; });
 				renderResults(items);
 				showResults();
