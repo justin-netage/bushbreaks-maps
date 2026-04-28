@@ -93,8 +93,8 @@ class Repository {
 		$from_raw    = $from_field    !== '' ? get_post_meta( $post_id, $from_field,    true ) : '';
 		$until_raw   = $until_field   !== '' ? get_post_meta( $post_id, $until_field,   true ) : '';
 
-		$normal  = is_numeric( $normal_raw )  && (float) $normal_raw  > 0 ? (float) $normal_raw  : null;
-		$special = is_numeric( $special_raw ) && (float) $special_raw > 0 ? (float) $special_raw : null;
+		$normal  = self::parse_amount( $normal_raw );
+		$special = self::parse_amount( $special_raw );
 
 		$discount = null;
 		if ( $normal !== null && $special !== null && $special < $normal ) {
@@ -112,9 +112,25 @@ class Repository {
 		];
 	}
 
+	/**
+	 * Parse a Pods currency value into a positive float, or null.
+	 * Tolerates formatted strings such as "3,100", "R 3 100", "3,100.50".
+	 */
+	private static function parse_amount( $raw ): ?float {
+		if ( $raw === null || $raw === '' || ! is_scalar( $raw ) ) {
+			return null;
+		}
+		$clean = preg_replace( '/[^\d.\-]/', '', (string) $raw );
+		if ( $clean === '' || ! is_numeric( $clean ) ) {
+			return null;
+		}
+		$val = (float) $clean;
+		return $val > 0 ? $val : null;
+	}
+
 	private static function format_money( float $amount, string $currency ): string {
 		$decimals  = ( floor( $amount ) === $amount ) ? 0 : 2;
-		$formatted = number_format_i18n( $amount, $decimals );
+		$formatted = number_format( $amount, $decimals, '.', '' );
 		$currency  = trim( $currency );
 		return $currency !== '' ? $currency . ' ' . $formatted : $formatted;
 	}
