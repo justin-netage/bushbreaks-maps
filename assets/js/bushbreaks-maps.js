@@ -70,6 +70,7 @@
 					mapTypeControl: false,
 					streetViewControl: false,
 					fullscreenControl: true,
+					gestureHandling: 'greedy',
 				});
 				ginfo = new google.maps.InfoWindow();
 			} else {
