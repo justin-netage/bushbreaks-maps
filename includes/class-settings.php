@@ -17,8 +17,13 @@ class Settings {
 			'address_field'  => 'location',
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
-			'image_field'    => 'banner',
-			'thumbnail_size' => 'medium',
+			'image_field'         => 'banner',
+			'normal_price_field'  => 'normal_price',
+			'special_price_field' => 'special_price',
+			'valid_from_field'    => 'valid_from',
+			'valid_until_field'   => 'valid_until',
+			'currency_symbol'     => 'R',
+			'thumbnail_size'      => 'medium',
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
@@ -102,7 +107,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'normal_price_field', 'special_price_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -177,6 +182,26 @@ class Settings {
 					<tr>
 						<th><label for="bbm_thumb"><?php esc_html_e( 'Thumbnail size', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_thumb" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[thumbnail_size]" type="text" value="<?php echo esc_attr( $opts['thumbnail_size'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_normal_price"><?php esc_html_e( 'Normal price field', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_normal_price" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[normal_price_field]" type="text" value="<?php echo esc_attr( $opts['normal_price_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_special_price"><?php esc_html_e( 'Special price field', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_special_price" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[special_price_field]" type="text" value="<?php echo esc_attr( $opts['special_price_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_valid_from"><?php esc_html_e( 'Special valid-from field', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_valid_from" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[valid_from_field]" type="text" value="<?php echo esc_attr( $opts['valid_from_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_valid_until"><?php esc_html_e( 'Special valid-until field', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_valid_until" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[valid_until_field]" type="text" value="<?php echo esc_attr( $opts['valid_until_field'] ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_currency"><?php esc_html_e( 'Currency symbol', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_currency" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[currency_symbol]" type="text" value="<?php echo esc_attr( $opts['currency_symbol'] ); ?>" class="small-text"></td>
 					</tr>
 					<tr>
 						<th><label for="bbm_clat"><?php esc_html_e( 'Default map centre latitude', 'bushbreaks-maps' ); ?></label></th>

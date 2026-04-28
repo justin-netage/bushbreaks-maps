@@ -77,7 +77,75 @@ class Repository {
 			'address'   => $address,
 			'thumbnail' => $thumb ?: '',
 			'excerpt'   => $excerpt,
+			'pricing'   => self::format_pricing( $post->ID, $opts ),
 		];
+	}
+
+	private static function format_pricing( int $post_id, array $opts ): array {
+		$currency       = (string) ( $opts['currency_symbol']     ?? '' );
+		$normal_field   = (string) ( $opts['normal_price_field']  ?? '' );
+		$special_field  = (string) ( $opts['special_price_field'] ?? '' );
+		$from_field     = (string) ( $opts['valid_from_field']    ?? '' );
+		$until_field    = (string) ( $opts['valid_until_field']   ?? '' );
+
+		$normal_raw  = $normal_field  !== '' ? get_post_meta( $post_id, $normal_field,  true ) : '';
+		$special_raw = $special_field !== '' ? get_post_meta( $post_id, $special_field, true ) : '';
+		$from_raw    = $from_field    !== '' ? get_post_meta( $post_id, $from_field,    true ) : '';
+		$until_raw   = $until_field   !== '' ? get_post_meta( $post_id, $until_field,   true ) : '';
+
+		$normal  = is_numeric( $normal_raw )  && (float) $normal_raw  > 0 ? (float) $normal_raw  : null;
+		$special = is_numeric( $special_raw ) && (float) $special_raw > 0 ? (float) $special_raw : null;
+
+		$discount = null;
+		if ( $normal !== null && $special !== null && $special < $normal ) {
+			$discount = (int) round( ( ( $normal - $special ) / $normal ) * 100 );
+		}
+
+		$from  = self::format_date_safe( (string) $from_raw );
+		$until = self::format_date_safe( (string) $until_raw );
+
+		return [
+			'normal'      => $normal  !== null ? self::format_money( $normal,  $currency ) : '',
+			'special'     => $special !== null ? self::format_money( $special, $currency ) : '',
+			'discount'    => $discount,
+			'valid_label' => $special !== null ? self::valid_label( $from, $until ) : '',
+		];
+	}
+
+	private static function format_money( float $amount, string $currency ): string {
+		$decimals  = ( floor( $amount ) === $amount ) ? 0 : 2;
+		$formatted = number_format_i18n( $amount, $decimals );
+		$currency  = trim( $currency );
+		return $currency !== '' ? $currency . ' ' . $formatted : $formatted;
+	}
+
+	private static function format_date_safe( string $value ): string {
+		$value = trim( $value );
+		if ( $value === '' ) {
+			return '';
+		}
+		$ts = strtotime( $value );
+		if ( $ts === false ) {
+			return '';
+		}
+		$format = (string) get_option( 'date_format', 'd M Y' );
+		return date_i18n( $format, $ts );
+	}
+
+	private static function valid_label( string $from, string $until ): string {
+		if ( $from !== '' && $until !== '' ) {
+			/* translators: 1: start date, 2: end date */
+			return sprintf( __( 'Valid %1$s – %2$s', 'bushbreaks-maps' ), $from, $until );
+		}
+		if ( $from !== '' ) {
+			/* translators: %s: start date */
+			return sprintf( __( 'Valid from %s', 'bushbreaks-maps' ), $from );
+		}
+		if ( $until !== '' ) {
+			/* translators: %s: end date */
+			return sprintf( __( 'Valid until %s', 'bushbreaks-maps' ), $until );
+		}
+		return '';
 	}
 
 	/**
