@@ -140,10 +140,22 @@ class Repository {
 		if ( $value === '' ) {
 			return '';
 		}
-		$ts = strtotime( $value );
+
+		$ts = false;
+		foreach ( [ 'd-m-Y', 'Y-m-d', 'd/m/Y', 'Y-m-d H:i:s' ] as $fmt ) {
+			$dt = \DateTime::createFromFormat( $fmt, $value );
+			if ( $dt instanceof \DateTime ) {
+				$ts = $dt->getTimestamp();
+				break;
+			}
+		}
+		if ( $ts === false ) {
+			$ts = strtotime( $value );
+		}
 		if ( $ts === false ) {
 			return '';
 		}
+
 		$format = (string) get_option( 'date_format', 'd M Y' );
 		return date_i18n( $format, $ts );
 	}
