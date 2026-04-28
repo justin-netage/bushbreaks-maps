@@ -20,6 +20,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			/>
 		</div>
 
+		<div class="bbm-categories" hidden>
+			<select class="bbm-category-select" aria-label="<?php echo esc_attr( $i18n['categoryPlaceholder'] ?? 'Filter by category' ); ?>">
+				<option value=""><?php echo esc_html( $i18n['categoryPlaceholder'] ?? 'Filter by category…' ); ?></option>
+			</select>
+			<div class="bbm-category-chips" role="list"></div>
+		</div>
+
 		<div class="bbm-loader" role="status" aria-live="polite" hidden>
 			<span class="bbm-loader-spinner" aria-hidden="true"></span>
 			<span class="bbm-loader-text"><?php echo esc_html( $i18n['searching'] ); ?></span>

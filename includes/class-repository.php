@@ -16,8 +16,9 @@ class Repository {
 		$opts = Settings::all();
 
 		$defaults = [
-			'search' => '',
-			'limit'  => -1,
+			'search'       => '',
+			'limit'        => -1,
+			'category_ids' => [],
 		];
 		$args = array_merge( $defaults, $args );
 
@@ -29,7 +30,10 @@ class Repository {
 			'no_found_rows' => true,
 		];
 
-		if ( $args['search'] === '' ) {
+		$has_search   = $args['search'] !== '';
+		$has_category = ! empty( $args['category_ids'] );
+
+		if ( ! $has_search && ! $has_category ) {
 			$query = new \WP_Query(
 				array_merge(
 					$base_args,
@@ -38,7 +42,7 @@ class Repository {
 			);
 			$posts = $query->posts;
 		} else {
-			$ids = self::collect_search_ids( $args['search'], $opts, $base_args );
+			$ids = self::collect_search_ids( $args['search'], $opts, $base_args, (array) $args['category_ids'] );
 			if ( empty( $ids ) ) {
 				return [];
 			}
@@ -73,32 +77,60 @@ class Repository {
 	 * Build the ID set for a search: title/content matches UNION posts
 	 * tagged with destination terms whose name matches the query.
 	 */
-	private static function collect_search_ids( string $term, array $opts, array $base_args ): array {
-		$text_query = new \WP_Query(
-			array_merge(
-				$base_args,
-				[
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					's'              => $term,
-				]
-			)
-		);
-		$ids = $text_query->posts;
+	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [] ): array {
+		$ids = null; // null = no constraint applied yet
 
-		$taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
-		if ( $taxonomy !== '' && taxonomy_exists( $taxonomy ) ) {
-			$matching_terms = get_terms(
-				[
-					'taxonomy'   => $taxonomy,
-					'search'     => $term,
-					'hide_empty' => false,
-					'fields'     => 'ids',
-				]
+		if ( $term !== '' ) {
+			$text_query = new \WP_Query(
+				array_merge(
+					$base_args,
+					[
+						'posts_per_page' => -1,
+						'fields'         => 'ids',
+						's'              => $term,
+					]
+				)
 			);
+			$ids = $text_query->posts;
 
-			if ( ! is_wp_error( $matching_terms ) && ! empty( $matching_terms ) ) {
-				$tax_query = new \WP_Query(
+			$taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
+			if ( $taxonomy !== '' && taxonomy_exists( $taxonomy ) ) {
+				$matching_terms = get_terms(
+					[
+						'taxonomy'   => $taxonomy,
+						'search'     => $term,
+						'hide_empty' => false,
+						'fields'     => 'ids',
+					]
+				);
+
+				if ( ! is_wp_error( $matching_terms ) && ! empty( $matching_terms ) ) {
+					$tax_query = new \WP_Query(
+						array_merge(
+							$base_args,
+							[
+								'posts_per_page' => -1,
+								'fields'         => 'ids',
+								'tax_query'      => [
+									[
+										'taxonomy' => $taxonomy,
+										'field'    => 'term_id',
+										'terms'    => $matching_terms,
+									],
+								],
+							]
+						)
+					);
+					$ids = array_merge( $ids, $tax_query->posts );
+				}
+			}
+		}
+
+		// Intersect with category filter (any-of semantics within filter)
+		if ( ! empty( $category_ids ) ) {
+			$cat_taxonomy = (string) ( $opts['category_taxonomy'] ?? '' );
+			if ( $cat_taxonomy !== '' && taxonomy_exists( $cat_taxonomy ) ) {
+				$cat_query = new \WP_Query(
 					array_merge(
 						$base_args,
 						[
@@ -106,19 +138,25 @@ class Repository {
 							'fields'         => 'ids',
 							'tax_query'      => [
 								[
-									'taxonomy' => $taxonomy,
+									'taxonomy' => $cat_taxonomy,
 									'field'    => 'term_id',
-									'terms'    => $matching_terms,
+									'terms'    => array_map( 'intval', $category_ids ),
 								],
 							],
 						]
 					)
 				);
-				$ids = array_merge( $ids, $tax_query->posts );
+				$cat_ids = $cat_query->posts;
+
+				if ( $ids === null ) {
+					$ids = $cat_ids;
+				} else {
+					$ids = array_intersect( $ids, $cat_ids );
+				}
 			}
 		}
 
-		return array_values( array_unique( array_map( 'intval', $ids ) ) );
+		return array_values( array_unique( array_map( 'intval', $ids ?: [] ) ) );
 	}
 
 	/**

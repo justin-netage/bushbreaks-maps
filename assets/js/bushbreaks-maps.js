@@ -91,8 +91,75 @@
 		if (searchInput) {
 			searchInput.addEventListener('input', function () {
 				clearTimeout(searchTimer);
-				var term = searchInput.value;
-				searchTimer = setTimeout(function () { runSearch(term); }, 250);
+				searchTimer = setTimeout(function () { runSearch(searchInput.value); }, 250);
+			});
+		}
+
+		// Category filter
+		var categoriesEl = wrap ? wrap.querySelector('.bbm-categories') : null;
+		var categorySelect = wrap ? wrap.querySelector('.bbm-category-select') : null;
+		var chipsEl = wrap ? wrap.querySelector('.bbm-category-chips') : null;
+		var allCategories = data.categories || [];
+		var selectedCategoryIds = [];
+
+		if (categoriesEl && categorySelect && chipsEl && allCategories.length > 0) {
+			categoriesEl.hidden = false;
+			renderCategorySelect();
+
+			categorySelect.addEventListener('change', function () {
+				var id = parseInt(categorySelect.value, 10);
+				if (!id) return;
+				if (selectedCategoryIds.indexOf(id) === -1) {
+					selectedCategoryIds.push(id);
+					renderCategorySelect();
+					renderChips();
+					runSearch(searchInput ? searchInput.value : '');
+				}
+				categorySelect.value = '';
+			});
+
+			chipsEl.addEventListener('click', function (e) {
+				var btn = e.target.closest('.bbm-chip-remove');
+				if (!btn) return;
+				var id = parseInt(btn.getAttribute('data-id'), 10);
+				selectedCategoryIds = selectedCategoryIds.filter(function (cid) { return cid !== id; });
+				renderCategorySelect();
+				renderChips();
+				runSearch(searchInput ? searchInput.value : '');
+			});
+		}
+
+		function renderCategorySelect() {
+			if (!categorySelect) return;
+			categorySelect.innerHTML = '';
+			var placeholder = document.createElement('option');
+			placeholder.value = '';
+			placeholder.textContent = data.i18n.categoryPlaceholder || 'Filter by category…';
+			categorySelect.appendChild(placeholder);
+
+			allCategories.forEach(function (cat) {
+				if (selectedCategoryIds.indexOf(cat.id) !== -1) return;
+				var opt = document.createElement('option');
+				opt.value = String(cat.id);
+				opt.textContent = cat.name;
+				categorySelect.appendChild(opt);
+			});
+		}
+
+		function renderChips() {
+			if (!chipsEl) return;
+			chipsEl.innerHTML = '';
+			selectedCategoryIds.forEach(function (id) {
+				var cat = allCategories.find(function (c) { return c.id === id; });
+				if (!cat) return;
+				var chip = document.createElement('span');
+				chip.className = 'bbm-chip';
+				chip.setAttribute('role', 'listitem');
+				chip.innerHTML = escapeHtml(cat.name)
+					+ ' <button type="button" class="bbm-chip-remove" aria-label="'
+					+ escapeAttr(data.i18n.removeCategory || 'Remove')
+					+ '" data-id="' + id + '">&times;</button>';
+				chipsEl.appendChild(chip);
 			});
 		}
 
@@ -398,15 +465,22 @@
 		}
 
 		function runSearch(term) {
-			term = term.trim();
-			if (term === '') {
+			term = (term || '').trim();
+			var hasFilter = term !== '' || selectedCategoryIds.length > 0;
+			if (!hasFilter) {
 				showList();
 				resetMapToAll();
 				return;
 			}
 
 			var reqId = ++lastReq;
-			var url = data.ajaxUrl + '?action=bushbreaks_maps_search&nonce=' + encodeURIComponent(data.nonce) + '&q=' + encodeURIComponent(term);
+			var url = data.ajaxUrl
+				+ '?action=bushbreaks_maps_search'
+				+ '&nonce=' + encodeURIComponent(data.nonce)
+				+ '&q=' + encodeURIComponent(term);
+			selectedCategoryIds.forEach(function (id) {
+				url += '&cats[]=' + encodeURIComponent(id);
+			});
 
 			showLoader();
 

@@ -18,6 +18,7 @@ class Settings {
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
 			'destination_taxonomy'    => 'destination',
+			'category_taxonomy'       => 'popular_request',
 			'image_field'         => 'banner',
 			'normal_price_field'      => 'normal_price',
 			'special_price_field'     => 'special_price',
@@ -116,7 +117,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -200,6 +201,13 @@ class Settings {
 						<td>
 							<input id="bbm_destination_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[destination_taxonomy]" type="text" value="<?php echo esc_attr( $opts['destination_taxonomy'] ); ?>" class="regular-text">
 							<p class="description"><?php esc_html_e( 'Custom taxonomy used for destinations. Search will match lodges tagged with destinations whose name matches the query.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_category_tax"><?php esc_html_e( 'Category taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_category_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[category_taxonomy]" type="text" value="<?php echo esc_attr( $opts['category_taxonomy'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'Taxonomy whose terms appear in the front-end filter dropdown beneath the search bar (e.g. popular_request).', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
 					<tr>
