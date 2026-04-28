@@ -309,7 +309,7 @@ class Settings {
 					<tr>
 						<th><label for="bbm_gmaps_key"><?php esc_html_e( 'Google Maps API key', 'bushbreaks-maps' ); ?></label></th>
 						<td>
-							<input id="bbm_gmaps_key" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[google_maps_api_key]" type="text" value="<?php echo esc_attr( $opts['google_maps_api_key'] ); ?>" class="large-text" autocomplete="off">
+							<input id="bbm_gmaps_key" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[google_maps_api_key]" type="password" value="<?php echo esc_attr( $opts['google_maps_api_key'] ); ?>" class="large-text" autocomplete="off" spellcheck="false">
 							<p class="description"><?php esc_html_e( 'When set, the front-end map switches to Google Maps. Leave empty to use OpenStreetMap (Leaflet).', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
