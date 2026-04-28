@@ -17,6 +17,7 @@ class Settings {
 			'address_field'  => 'location',
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
+			'image_field'    => 'banner',
 			'thumbnail_size' => 'medium',
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
@@ -101,7 +102,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -164,6 +165,13 @@ class Settings {
 						<td>
 							<input id="bbm_location" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[location_field]" type="text" value="<?php echo esc_attr( $opts['location_field'] ); ?>" class="regular-text">
 							<p class="description"><?php esc_html_e( 'Used as a fallback when no iframe is set. Geocoded via OpenStreetMap Nominatim and cached.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_image"><?php esc_html_e( 'Image field (Pods)', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_image" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[image_field]" type="text" value="<?php echo esc_attr( $opts['image_field'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'Pods image/file field used as the card thumbnail. Falls back to the WordPress featured image when empty.', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
 					<tr>
