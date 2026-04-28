@@ -17,7 +17,7 @@ class Shortcode {
 	public function register_assets(): void {
 		$api_key = trim( (string) Settings::get( 'google_maps_api_key' ) );
 
-		// Plugin stylesheet — Leaflet CSS only enqueued when no API key.
+		// Leaflet core
 		wp_register_style(
 			'leaflet',
 			'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
@@ -32,8 +32,29 @@ class Shortcode {
 			true
 		);
 
-		$style_deps  = $api_key === '' ? [ 'leaflet' ] : [];
-		$script_deps = $api_key === '' ? [ 'leaflet' ] : [];
+		// Leaflet markercluster (CSS bundle + JS)
+		wp_register_style(
+			'leaflet-markercluster',
+			'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
+			[ 'leaflet' ],
+			'1.5.3'
+		);
+		wp_register_style(
+			'leaflet-markercluster-default',
+			'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css',
+			[ 'leaflet-markercluster' ],
+			'1.5.3'
+		);
+		wp_register_script(
+			'leaflet-markercluster',
+			'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js',
+			[ 'leaflet' ],
+			'1.5.3',
+			true
+		);
+
+		$style_deps  = $api_key === '' ? [ 'leaflet-markercluster-default' ] : [];
+		$script_deps = $api_key === '' ? [ 'leaflet-markercluster' ] : [];
 
 		wp_register_style(
 			'bushbreaks-maps',
@@ -50,6 +71,15 @@ class Shortcode {
 		);
 
 		if ( $api_key !== '' ) {
+			// Google markerclusterer (UMD global "markerClusterer")
+			wp_register_script(
+				'bushbreaks-maps-google-cluster',
+				'https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js',
+				[ 'bushbreaks-maps' ],
+				'2.5.3',
+				true
+			);
+
 			$google_url = add_query_arg(
 				[
 					'key'      => $api_key,
@@ -62,7 +92,7 @@ class Shortcode {
 			wp_register_script(
 				'bushbreaks-maps-google',
 				$google_url,
-				[ 'bushbreaks-maps' ],
+				[ 'bushbreaks-maps-google-cluster' ],
 				null,
 				[
 					'strategy'  => 'async',

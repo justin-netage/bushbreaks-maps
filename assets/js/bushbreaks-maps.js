@@ -43,12 +43,20 @@
 		var lmap = null;       // Leaflet map
 		var gmap = null;       // Google map
 		var ginfo = null;      // Google InfoWindow (shared)
+		var lcluster = null;   // L.markerClusterGroup
+		var gcluster = null;   // markerClusterer.MarkerClusterer
 
 		var markersById = {};
 		var allMarkers = [];
 
 		mapInit(mapEl);
 		(data.locations || []).forEach(addMarker);
+		if (isGoogle && allMarkers.length > 0) {
+			gcluster = new markerClusterer.MarkerClusterer({
+				map: gmap,
+				markers: allMarkers,
+			});
+		}
 		if (allMarkers.length > 0) fitMarkers(allMarkers, /*animate*/ false);
 
 		bindCardInteractions(listEl);
@@ -80,6 +88,8 @@
 					attribution: data.tile.attr,
 					maxZoom: 19,
 				}).addTo(lmap);
+				lcluster = L.markerClusterGroup();
+				lmap.addLayer(lcluster);
 			}
 		}
 
@@ -89,9 +99,10 @@
 			var marker;
 
 			if (isGoogle) {
+				// MarkerClusterer manages map attachment; create the marker
+				// without setting `map` so it isn't shown twice.
 				marker = new google.maps.Marker({
 					position: { lat: parseFloat(item.lat), lng: parseFloat(item.lng) },
-					map: gmap,
 					title: item.title,
 				});
 				marker._bbm_popup_html = html;
@@ -102,7 +113,7 @@
 			} else {
 				marker = L.marker([item.lat, item.lng], { title: item.title });
 				marker.bindPopup(html, { minWidth: 220, maxWidth: 280 });
-				marker.addTo(lmap);
+				lcluster.addLayer(marker);
 			}
 
 			markersById[item.id] = marker;
@@ -112,17 +123,19 @@
 
 		function showMarker(marker) {
 			if (isGoogle) {
-				if (!marker.getMap()) marker.setMap(gmap);
+				if (gcluster) gcluster.addMarker(marker);
+				else if (!marker.getMap()) marker.setMap(gmap);
 			} else {
-				if (!lmap.hasLayer(marker)) marker.addTo(lmap);
+				if (lcluster && !lcluster.hasLayer(marker)) lcluster.addLayer(marker);
 			}
 		}
 
 		function hideMarker(marker) {
 			if (isGoogle) {
-				if (marker.getMap()) marker.setMap(null);
+				if (gcluster) gcluster.removeMarker(marker);
+				else if (marker.getMap()) marker.setMap(null);
 			} else {
-				if (lmap.hasLayer(marker)) lmap.removeLayer(marker);
+				if (lcluster && lcluster.hasLayer(marker)) lcluster.removeLayer(marker);
 			}
 		}
 
@@ -197,14 +210,29 @@
 		function showOnlyMarkers(ids) {
 			var allow = {};
 			(ids || []).forEach(function (id) { allow[String(id)] = true; });
+			var keep = [];
 			Object.keys(markersById).forEach(function (id) {
-				var marker = markersById[id];
-				if (allow[String(id)]) showMarker(marker);
-				else hideMarker(marker);
+				if (allow[String(id)]) keep.push(markersById[id]);
 			});
+
+			if (isGoogle && gcluster) {
+				gcluster.clearMarkers();
+				gcluster.addMarkers(keep);
+			} else {
+				Object.keys(markersById).forEach(function (id) {
+					var marker = markersById[id];
+					if (allow[String(id)]) showMarker(marker);
+					else hideMarker(marker);
+				});
+			}
 		}
 
 		function showAllMarkers() {
+			if (isGoogle && gcluster) {
+				gcluster.clearMarkers();
+				gcluster.addMarkers(allMarkers);
+				return;
+			}
 			Object.keys(markersById).forEach(function (id) {
 				showMarker(markersById[id]);
 			});
@@ -218,8 +246,19 @@
 		function focusItem(id, lat, lng) {
 			var marker = markersById[id];
 			if (marker) {
-				panToMarker(marker);
-				openMarkerPopup(marker);
+				if (isGoogle) {
+					gmap.panTo(marker.getPosition());
+					if (gmap.getZoom() < 13) gmap.setZoom(13);
+					ginfo.setContent(marker._bbm_popup_html);
+					ginfo.open({ anchor: marker, map: gmap });
+				} else if (lcluster) {
+					lcluster.zoomToShowLayer(marker, function () {
+						marker.openPopup();
+					});
+				} else {
+					panToMarker(marker);
+					openMarkerPopup(marker);
+				}
 			} else if (lat != null && lng != null) {
 				panToLatLng(parseFloat(lat), parseFloat(lng));
 			}
