@@ -21,23 +21,44 @@ class Repository {
 		];
 		$args = array_merge( $defaults, $args );
 
-		$query_args = [
-			'post_type'      => $opts['post_type'],
-			'post_status'    => 'publish',
-			'posts_per_page' => (int) $args['limit'],
-			'orderby'        => 'title',
-			'order'          => 'ASC',
-			'no_found_rows'  => true,
+		$base_args = [
+			'post_type'     => $opts['post_type'],
+			'post_status'   => 'publish',
+			'orderby'       => 'title',
+			'order'         => 'ASC',
+			'no_found_rows' => true,
 		];
 
-		if ( $args['search'] !== '' ) {
-			$query_args['s'] = $args['search'];
+		if ( $args['search'] === '' ) {
+			$query = new \WP_Query(
+				array_merge(
+					$base_args,
+					[ 'posts_per_page' => (int) $args['limit'] ]
+				)
+			);
+			$posts = $query->posts;
+		} else {
+			$ids = self::collect_search_ids( $args['search'], $opts, $base_args );
+			if ( empty( $ids ) ) {
+				return [];
+			}
+			if ( $args['limit'] > 0 ) {
+				$ids = array_slice( $ids, 0, (int) $args['limit'] );
+			}
+			$query = new \WP_Query(
+				array_merge(
+					$base_args,
+					[
+						'post__in'       => $ids,
+						'posts_per_page' => count( $ids ),
+					]
+				)
+			);
+			$posts = $query->posts;
 		}
 
-		$query = new \WP_Query( $query_args );
-
 		$results = [];
-		foreach ( $query->posts as $post ) {
+		foreach ( $posts as $post ) {
 			$item = self::format_post( $post, $opts );
 			if ( $item !== null && $item['lat'] !== null && $item['lng'] !== null ) {
 				$results[] = $item;
@@ -46,6 +67,58 @@ class Repository {
 
 		wp_reset_postdata();
 		return $results;
+	}
+
+	/**
+	 * Build the ID set for a search: title/content matches UNION posts
+	 * tagged with destination terms whose name matches the query.
+	 */
+	private static function collect_search_ids( string $term, array $opts, array $base_args ): array {
+		$text_query = new \WP_Query(
+			array_merge(
+				$base_args,
+				[
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					's'              => $term,
+				]
+			)
+		);
+		$ids = $text_query->posts;
+
+		$taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
+		if ( $taxonomy !== '' && taxonomy_exists( $taxonomy ) ) {
+			$matching_terms = get_terms(
+				[
+					'taxonomy'   => $taxonomy,
+					'search'     => $term,
+					'hide_empty' => false,
+					'fields'     => 'ids',
+				]
+			);
+
+			if ( ! is_wp_error( $matching_terms ) && ! empty( $matching_terms ) ) {
+				$tax_query = new \WP_Query(
+					array_merge(
+						$base_args,
+						[
+							'posts_per_page' => -1,
+							'fields'         => 'ids',
+							'tax_query'      => [
+								[
+									'taxonomy' => $taxonomy,
+									'field'    => 'term_id',
+									'terms'    => $matching_terms,
+								],
+							],
+						]
+					)
+				);
+				$ids = array_merge( $ids, $tax_query->posts );
+			}
+		}
+
+		return array_values( array_unique( array_map( 'intval', $ids ) ) );
 	}
 
 	/**

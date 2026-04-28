@@ -17,6 +17,7 @@ class Settings {
 			'address_field'  => 'location',
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
+			'destination_taxonomy'    => 'destination',
 			'image_field'         => 'banner',
 			'normal_price_field'      => 'normal_price',
 			'special_price_field'     => 'special_price',
@@ -108,7 +109,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -171,6 +172,13 @@ class Settings {
 						<td>
 							<input id="bbm_location" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[location_field]" type="text" value="<?php echo esc_attr( $opts['location_field'] ); ?>" class="regular-text">
 							<p class="description"><?php esc_html_e( 'Used as a fallback when no iframe is set. Geocoded via OpenStreetMap Nominatim and cached.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_destination_tax"><?php esc_html_e( 'Destination taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_destination_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[destination_taxonomy]" type="text" value="<?php echo esc_attr( $opts['destination_taxonomy'] ); ?>" class="regular-text">
+							<p class="description"><?php esc_html_e( 'Custom taxonomy used for destinations. Search will match lodges tagged with destinations whose name matches the query.', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
 					<tr>
