@@ -21,9 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 		<div class="bbm-categories" hidden>
-			<select class="bbm-category-select" aria-label="<?php echo esc_attr( $i18n['categoryPlaceholder'] ?? 'Filter by category' ); ?>">
-				<option value=""><?php echo esc_html( $i18n['categoryPlaceholder'] ?? 'Filter by category…' ); ?></option>
-			</select>
+			<div class="bbm-category-dropdown">
+				<button type="button" class="bbm-category-toggle" aria-expanded="false" aria-haspopup="listbox">
+					<span class="bbm-category-toggle-label"><?php echo esc_html( $i18n['categoryPlaceholder'] ?? 'Filter by category…' ); ?></span>
+					<span class="bbm-category-toggle-arrow" aria-hidden="true">&#9662;</span>
+				</button>
+				<div class="bbm-category-panel" role="listbox" aria-multiselectable="true" hidden></div>
+			</div>
 			<div class="bbm-category-chips" role="list"></div>
 		</div>
 
