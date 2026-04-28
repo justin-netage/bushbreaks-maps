@@ -15,15 +15,15 @@
 	overflow: hidden;
 }
 
-.bbm-search {
+.bbm-wrap .bbm-search {
 	flex: 0 0 auto;
 	margin-bottom: 12px;
-	position: relative;
+	position: relative !important;
 }
 
 .bbm-search-input {
 	width: 100%;
-	padding: 10px 36px 10px 14px;
+	padding: 10px 38px 10px 14px;
 	font-size: 15px;
 	border: 1px solid #cfd4da;
 	border-radius: 6px;
@@ -36,28 +36,34 @@
 	outline-offset: 1px;
 }
 
-.bbm-search-spinner {
-	position: absolute;
-	top: 50%;
-	right: 12px;
-	width: 14px;
-	height: 14px;
-	margin-top: -7px;
+.bbm-wrap .bbm-search-spinner {
+	position: absolute !important;
+	top: 50% !important;
+	right: 12px !important;
+	left: auto !important;
+	bottom: auto !important;
+	margin: 0 !important;
+	width: 18px;
+	height: 18px;
+	box-sizing: border-box;
 	border: 2px solid #cfd4da;
 	border-top-color: #2c7a3d;
 	border-radius: 50%;
+	background: transparent;
 	opacity: 0;
 	pointer-events: none;
+	transform: translateY(-50%);
 	transition: opacity 0.15s ease;
 }
 
-.bbm-search.is-loading .bbm-search-spinner {
+.bbm-wrap .bbm-search.is-loading .bbm-search-spinner {
 	opacity: 1;
 	animation: bbm-spin 0.7s linear infinite;
 }
 
 @keyframes bbm-spin {
-	to { transform: rotate(360deg); }
+	from { transform: translateY(-50%) rotate(0deg); }
+	to   { transform: translateY(-50%) rotate(360deg); }
 }
 
 .bbm-results,
