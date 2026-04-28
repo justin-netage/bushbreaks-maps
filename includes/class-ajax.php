@@ -17,10 +17,20 @@ class Ajax {
 
 		$term = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
 
+		$cats = [];
+		if ( isset( $_GET['cats'] ) && is_array( $_GET['cats'] ) ) {
+			foreach ( wp_unslash( $_GET['cats'] ) as $c ) {
+				if ( is_numeric( $c ) && (int) $c > 0 ) {
+					$cats[] = (int) $c;
+				}
+			}
+		}
+
 		$results = Repository::query(
 			[
-				'search' => $term,
-				'limit'  => 50,
+				'search'       => $term,
+				'category_ids' => $cats,
+				'limit'        => 50,
 			]
 		);
 
