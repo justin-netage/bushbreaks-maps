@@ -49,15 +49,43 @@
 		var markersById = {};
 		var allMarkers = [];
 
+		var icons = data.icons || {};
+		var markerCfg = icons.marker || {};
+		var clusterCfg = icons.cluster || {};
+
 		mapInit(mapEl);
 		(data.locations || []).forEach(addMarker);
 		if (isGoogle && allMarkers.length > 0) {
-			gcluster = new markerClusterer.MarkerClusterer({
-				map: gmap,
-				markers: allMarkers,
-			});
+			gcluster = new markerClusterer.MarkerClusterer(buildGoogleClusterOptions());
 		}
 		if (allMarkers.length > 0) fitMarkers(allMarkers, /*animate*/ false);
+
+		function buildGoogleClusterOptions() {
+			var opts = { map: gmap, markers: allMarkers };
+			if (clusterCfg.url) {
+				var size = clusterCfg.size || 48;
+				opts.renderer = {
+					render: function (cluster) {
+						return new google.maps.Marker({
+							position: cluster.position,
+							icon: {
+								url: clusterCfg.url,
+								scaledSize: new google.maps.Size(size, size),
+								anchor: new google.maps.Point(size / 2, size / 2),
+							},
+							label: {
+								text: String(cluster.count),
+								color: '#ffffff',
+								fontSize: '13px',
+								fontWeight: '700',
+							},
+							zIndex: 1000 + cluster.count,
+						});
+					},
+				};
+			}
+			return opts;
+		}
 
 		bindCardInteractions(listEl);
 		if (searchInput) {
@@ -88,7 +116,18 @@
 					attribution: data.tile.attr,
 					maxZoom: 19,
 				}).addTo(lmap);
-				lcluster = L.markerClusterGroup();
+				var clusterOpts = {};
+				if (clusterCfg.url) {
+					var size = clusterCfg.size || 48;
+					clusterOpts.iconCreateFunction = function (cluster) {
+						return L.divIcon({
+							html: '<div class="bbm-cluster-inner" style="background-image:url(' + JSON.stringify(clusterCfg.url) + ');width:' + size + 'px;height:' + size + 'px;line-height:' + size + 'px;">' + cluster.getChildCount() + '</div>',
+							className: 'bbm-cluster-icon',
+							iconSize: L.point(size, size),
+						});
+					};
+				}
+				lcluster = L.markerClusterGroup(clusterOpts);
 				lmap.addLayer(lcluster);
 			}
 		}
@@ -99,19 +138,34 @@
 			var marker;
 
 			if (isGoogle) {
-				// MarkerClusterer manages map attachment; create the marker
-				// without setting `map` so it isn't shown twice.
-				marker = new google.maps.Marker({
+				var gOpts = {
 					position: { lat: parseFloat(item.lat), lng: parseFloat(item.lng) },
 					title: item.title,
-				});
+				};
+				if (markerCfg.url) {
+					gOpts.icon = {
+						url: markerCfg.url,
+						scaledSize: new google.maps.Size(markerCfg.width, markerCfg.height),
+						anchor: new google.maps.Point(markerCfg.width / 2, markerCfg.height),
+					};
+				}
+				marker = new google.maps.Marker(gOpts);
 				marker._bbm_popup_html = html;
 				marker.addListener('click', function () {
 					ginfo.setContent(marker._bbm_popup_html);
 					ginfo.open({ anchor: marker, map: gmap });
 				});
 			} else {
-				marker = L.marker([item.lat, item.lng], { title: item.title });
+				var lOpts = { title: item.title };
+				if (markerCfg.url) {
+					lOpts.icon = L.icon({
+						iconUrl: markerCfg.url,
+						iconSize: [markerCfg.width, markerCfg.height],
+						iconAnchor: [markerCfg.width / 2, markerCfg.height],
+						popupAnchor: [0, -markerCfg.height + 4],
+					});
+				}
+				marker = L.marker([item.lat, item.lng], lOpts);
 				marker.bindPopup(html, { minWidth: 220, maxWidth: 280 });
 				lcluster.addLayer(marker);
 			}

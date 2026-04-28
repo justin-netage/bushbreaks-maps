@@ -146,6 +146,17 @@ class Shortcode {
 					'url'  => $opts['tile_url'],
 					'attr' => $opts['tile_attr'],
 				],
+				'icons'     => [
+					'marker'  => [
+						'url'    => (string) $opts['marker_icon_url'],
+						'width'  => (int) $opts['marker_icon_width'],
+						'height' => (int) $opts['marker_icon_height'],
+					],
+					'cluster' => [
+						'url'  => (string) $opts['cluster_icon_url'],
+						'size' => (int) $opts['cluster_icon_size'],
+					],
+				],
 				'i18n'      => [
 					'searchPlaceholder' => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
 					'listHeading'       => __( 'Lodges', 'bushbreaks-maps' ),

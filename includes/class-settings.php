@@ -30,6 +30,11 @@ class Settings {
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
 			'list_limit'     => 10,
+			'marker_icon_url'    => '',
+			'marker_icon_width'  => 32,
+			'marker_icon_height' => 40,
+			'cluster_icon_url'   => '',
+			'cluster_icon_size'  => 48,
 			'google_maps_api_key' => '',
 			'tile_url'       => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 			'tile_attr'      => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -67,10 +72,11 @@ class Settings {
 			if ( $current !== $hook ) {
 				return;
 			}
+			wp_enqueue_media();
 			wp_enqueue_script(
 				'bushbreaks-maps-admin',
 				BUSHBREAKS_MAPS_URL . 'assets/js/bbm-admin.js',
-				[],
+				[ 'jquery' ],
 				BUSHBREAKS_MAPS_VERSION,
 				true
 			);
@@ -128,6 +134,20 @@ class Settings {
 		}
 		if ( isset( $input['list_limit'] ) && is_numeric( $input['list_limit'] ) ) {
 			$out['list_limit'] = max( 1, min( 50, (int) $input['list_limit'] ) );
+		}
+
+		foreach ( [ 'marker_icon_url', 'cluster_icon_url' ] as $url_key ) {
+			if ( isset( $input[ $url_key ] ) ) {
+				$out[ $url_key ] = esc_url_raw( (string) $input[ $url_key ] );
+			}
+		}
+		foreach ( [ 'marker_icon_width', 'marker_icon_height' ] as $size_key ) {
+			if ( isset( $input[ $size_key ] ) && is_numeric( $input[ $size_key ] ) ) {
+				$out[ $size_key ] = max( 8, min( 256, (int) $input[ $size_key ] ) );
+			}
+		}
+		if ( isset( $input['cluster_icon_size'] ) && is_numeric( $input['cluster_icon_size'] ) ) {
+			$out['cluster_icon_size'] = max( 16, min( 200, (int) $input['cluster_icon_size'] ) );
 		}
 
 		return $out;
@@ -236,6 +256,48 @@ class Settings {
 						<th><label for="bbm_list_limit"><?php esc_html_e( 'List limit', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_list_limit" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[list_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['list_limit'] ); ?>" class="small-text"></td>
 					</tr>
+					<tr><th colspan="2"><h2 style="margin:8px 0 0"><?php esc_html_e( 'Custom markers', 'bushbreaks-maps' ); ?></h2></th></tr>
+					<tr>
+						<th><label for="bbm_marker_url"><?php esc_html_e( 'Lodge marker image', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_marker_url" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_url]" type="text" value="<?php echo esc_attr( $opts['marker_icon_url'] ); ?>" class="large-text" autocomplete="off">
+							<button type="button" class="button bbm-media-picker"
+								data-target="bbm_marker_url"
+								data-width-target="bbm_marker_width"
+								data-height-target="bbm_marker_height"
+								data-title="<?php echo esc_attr__( 'Choose lodge marker', 'bushbreaks-maps' ); ?>">
+								<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
+							</button>
+							<p class="description"><?php esc_html_e( 'Leave empty to use the default pin.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_marker_width"><?php esc_html_e( 'Marker size (px)', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_marker_width" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_width]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_width'] ); ?>" style="width:90px"> &times;
+							<input id="bbm_marker_height" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_height]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_height'] ); ?>" style="width:90px">
+							<p class="description"><?php esc_html_e( 'Width × height. Filled in automatically when you pick from the media library.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_cluster_url"><?php esc_html_e( 'Cluster icon', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_cluster_url" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[cluster_icon_url]" type="text" value="<?php echo esc_attr( $opts['cluster_icon_url'] ); ?>" class="large-text" autocomplete="off">
+							<button type="button" class="button bbm-media-picker"
+								data-target="bbm_cluster_url"
+								data-title="<?php echo esc_attr__( 'Choose cluster icon', 'bushbreaks-maps' ); ?>">
+								<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
+							</button>
+							<p class="description"><?php esc_html_e( 'Leave empty to use the default cluster style. The lodge count is drawn on top.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_cluster_size"><?php esc_html_e( 'Cluster size (px)', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_cluster_size" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[cluster_icon_size]" type="number" min="16" max="200" value="<?php echo esc_attr( (string) $opts['cluster_icon_size'] ); ?>" style="width:90px">
+						</td>
+					</tr>
+					<tr><th colspan="2"><h2 style="margin:8px 0 0"><?php esc_html_e( 'Map provider', 'bushbreaks-maps' ); ?></h2></th></tr>
 					<tr>
 						<th><label for="bbm_gmaps_key"><?php esc_html_e( 'Google Maps API key', 'bushbreaks-maps' ); ?></label></th>
 						<td>
