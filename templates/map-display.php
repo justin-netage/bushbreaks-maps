@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<div class="bbm-card-thumb" style="background-image:url('<?php echo esc_url( $item['thumbnail'] ); ?>');"></div>
 						<?php endif; ?>
 						<div class="bbm-card-body">
-							<a class="bbm-card-title" href="<?php echo esc_url( $item['permalink'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+							<span class="bbm-card-title"><?php echo esc_html( $item['title'] ); ?></span>
 							<?php if ( $item['address'] ) : ?>
 								<div class="bbm-card-address"><?php echo esc_html( $item['address'] ); ?></div>
 							<?php endif; ?>
