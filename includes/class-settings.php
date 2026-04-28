@@ -30,6 +30,7 @@ class Settings {
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
 			'list_limit'     => 10,
+			'google_maps_api_key' => '',
 			'tile_url'       => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 			'tile_attr'      => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 		];
@@ -109,7 +110,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -236,7 +237,14 @@ class Settings {
 						<td><input id="bbm_list_limit" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[list_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['list_limit'] ); ?>" class="small-text"></td>
 					</tr>
 					<tr>
-						<th><label for="bbm_tile"><?php esc_html_e( 'Map tile URL', 'bushbreaks-maps' ); ?></label></th>
+						<th><label for="bbm_gmaps_key"><?php esc_html_e( 'Google Maps API key', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_gmaps_key" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[google_maps_api_key]" type="text" value="<?php echo esc_attr( $opts['google_maps_api_key'] ); ?>" class="large-text" autocomplete="off">
+							<p class="description"><?php esc_html_e( 'When set, the front-end map switches to Google Maps. Leave empty to use OpenStreetMap (Leaflet).', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="bbm_tile"><?php esc_html_e( 'Leaflet tile URL', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_tile" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[tile_url]" type="text" value="<?php echo esc_attr( $opts['tile_url'] ); ?>" class="large-text"></td>
 					</tr>
 					<tr>
