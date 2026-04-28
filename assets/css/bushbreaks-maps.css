@@ -18,11 +18,12 @@
 .bbm-search {
 	flex: 0 0 auto;
 	margin-bottom: 12px;
+	position: relative;
 }
 
 .bbm-search-input {
 	width: 100%;
-	padding: 10px 14px;
+	padding: 10px 36px 10px 14px;
 	font-size: 15px;
 	border: 1px solid #cfd4da;
 	border-radius: 6px;
@@ -33,6 +34,30 @@
 .bbm-search-input:focus {
 	outline: 2px solid #2c7a3d;
 	outline-offset: 1px;
+}
+
+.bbm-search-spinner {
+	position: absolute;
+	top: 50%;
+	right: 12px;
+	width: 14px;
+	height: 14px;
+	margin-top: -7px;
+	border: 2px solid #cfd4da;
+	border-top-color: #2c7a3d;
+	border-radius: 50%;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+.bbm-search.is-loading .bbm-search-spinner {
+	opacity: 1;
+	animation: bbm-spin 0.7s linear infinite;
+}
+
+@keyframes bbm-spin {
+	to { transform: rotate(360deg); }
 }
 
 .bbm-results,
