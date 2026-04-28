@@ -71,6 +71,22 @@
 	to { transform: rotate(360deg); }
 }
 
+.bbm-cluster-icon {
+	background: transparent !important;
+	border: none !important;
+}
+
+.bbm-cluster-icon .bbm-cluster-inner {
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: 700;
+	font-size: 13px;
+	text-align: center;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
 .bbm-results,
 .bbm-list {
 	flex: 1 1 auto;

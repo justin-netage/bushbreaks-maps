@@ -1,6 +1,33 @@
 (function () {
 	'use strict';
 
+	// Media Library picker for icon URL fields.
+	if (typeof window.jQuery !== 'undefined' && typeof window.wp !== 'undefined' && window.wp.media) {
+		jQuery(document).on('click', '.bbm-media-picker', function (e) {
+			e.preventDefault();
+			var $btn = jQuery(this);
+			var target = $btn.data('target');
+			var widthTarget = $btn.data('width-target');
+			var heightTarget = $btn.data('height-target');
+
+			var frame = wp.media({
+				title: $btn.data('title') || 'Choose image',
+				button: { text: 'Use this image' },
+				library: { type: 'image' },
+				multiple: false,
+			});
+
+			frame.on('select', function () {
+				var att = frame.state().get('selection').first().toJSON();
+				if (target) jQuery('#' + target).val(att.url);
+				if (widthTarget && att.width) jQuery('#' + widthTarget).val(att.width);
+				if (heightTarget && att.height) jQuery('#' + heightTarget).val(att.height);
+			});
+
+			frame.open();
+		});
+	}
+
 	var btn = document.getElementById('bbm-backfill');
 	var status = document.getElementById('bbm-backfill-status');
 	if (!btn || !status || typeof window.BushbreaksMapsAdmin === 'undefined') {
