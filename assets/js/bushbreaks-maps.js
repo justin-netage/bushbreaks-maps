@@ -97,25 +97,38 @@
 
 		// Category filter
 		var categoriesEl = wrap ? wrap.querySelector('.bbm-categories') : null;
-		var categorySelect = wrap ? wrap.querySelector('.bbm-category-select') : null;
+		var categoryToggle = wrap ? wrap.querySelector('.bbm-category-toggle') : null;
+		var categoryToggleLabel = wrap ? wrap.querySelector('.bbm-category-toggle-label') : null;
+		var categoryPanel = wrap ? wrap.querySelector('.bbm-category-panel') : null;
 		var chipsEl = wrap ? wrap.querySelector('.bbm-category-chips') : null;
 		var allCategories = data.categories || [];
 		var selectedCategoryIds = [];
 
-		if (categoriesEl && categorySelect && chipsEl && allCategories.length > 0) {
+		if (categoriesEl && categoryToggle && categoryPanel && chipsEl && allCategories.length > 0) {
 			categoriesEl.hidden = false;
-			renderCategorySelect();
+			renderCategoryPanel();
+			updateCategoryToggleLabel();
 
-			categorySelect.addEventListener('change', function () {
-				var id = parseInt(categorySelect.value, 10);
-				if (!id) return;
-				if (selectedCategoryIds.indexOf(id) === -1) {
-					selectedCategoryIds.push(id);
-					renderCategorySelect();
-					renderChips();
-					runSearch(searchInput ? searchInput.value : '');
+			categoryToggle.addEventListener('click', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				var willOpen = categoryPanel.hidden;
+				categoryPanel.hidden = !willOpen;
+				categoryToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+			});
+
+			categoryPanel.addEventListener('change', function (e) {
+				var cb = e.target.closest('input[type="checkbox"]');
+				if (!cb) return;
+				var id = parseInt(cb.value, 10);
+				if (cb.checked) {
+					if (selectedCategoryIds.indexOf(id) === -1) selectedCategoryIds.push(id);
+				} else {
+					selectedCategoryIds = selectedCategoryIds.filter(function (cid) { return cid !== id; });
 				}
-				categorySelect.value = '';
+				renderChips();
+				updateCategoryToggleLabel();
+				runSearch(searchInput ? searchInput.value : '');
 			});
 
 			chipsEl.addEventListener('click', function (e) {
@@ -123,27 +136,45 @@
 				if (!btn) return;
 				var id = parseInt(btn.getAttribute('data-id'), 10);
 				selectedCategoryIds = selectedCategoryIds.filter(function (cid) { return cid !== id; });
-				renderCategorySelect();
+				var cb = categoryPanel.querySelector('input[type="checkbox"][value="' + id + '"]');
+				if (cb) cb.checked = false;
 				renderChips();
+				updateCategoryToggleLabel();
 				runSearch(searchInput ? searchInput.value : '');
+			});
+
+			document.addEventListener('click', function (e) {
+				if (categoryPanel.hidden) return;
+				if (!categoriesEl.contains(e.target)) {
+					categoryPanel.hidden = true;
+					categoryToggle.setAttribute('aria-expanded', 'false');
+				}
 			});
 		}
 
-		function renderCategorySelect() {
-			if (!categorySelect) return;
-			categorySelect.innerHTML = '';
-			var placeholder = document.createElement('option');
-			placeholder.value = '';
-			placeholder.textContent = data.i18n.categoryPlaceholder || 'Filter by category…';
-			categorySelect.appendChild(placeholder);
-
+		function renderCategoryPanel() {
+			if (!categoryPanel) return;
+			categoryPanel.innerHTML = '';
 			allCategories.forEach(function (cat) {
-				if (selectedCategoryIds.indexOf(cat.id) !== -1) return;
-				var opt = document.createElement('option');
-				opt.value = String(cat.id);
-				opt.textContent = cat.name;
-				categorySelect.appendChild(opt);
+				var label = document.createElement('label');
+				label.className = 'bbm-category-option';
+				var cb = document.createElement('input');
+				cb.type = 'checkbox';
+				cb.value = String(cat.id);
+				cb.checked = selectedCategoryIds.indexOf(cat.id) !== -1;
+				var span = document.createElement('span');
+				span.textContent = cat.name;
+				label.appendChild(cb);
+				label.appendChild(span);
+				categoryPanel.appendChild(label);
 			});
+		}
+
+		function updateCategoryToggleLabel() {
+			if (!categoryToggleLabel) return;
+			var n = selectedCategoryIds.length;
+			var base = data.i18n.categoryPlaceholder || 'Filter by category…';
+			categoryToggleLabel.textContent = n > 0 ? base + ' (' + n + ')' : base;
 		}
 
 		function renderChips() {
