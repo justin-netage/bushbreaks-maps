@@ -58,18 +58,26 @@
 	padding: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
 }
 
 .bbm-card {
 	display: flex;
-	gap: 10px;
-	padding: 10px;
+	gap: 8px;
+	margin: 0;
+	padding: 8px;
 	border: 1px solid #e3e6ea;
 	border-radius: 8px;
 	background: #fff;
 	cursor: pointer;
+	list-style: none;
+	text-indent: 0;
 	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.bbm-card::before,
+.bbm-card::marker {
+	content: none;
 }
 
 .bbm-card:hover,
@@ -79,9 +87,9 @@
 }
 
 .bbm-card-thumb {
-	flex: 0 0 80px;
-	width: 80px;
-	height: 80px;
+	flex: 0 0 72px;
+	width: 72px;
+	height: 72px;
 	background-size: cover;
 	background-position: center;
 	border-radius: 6px;
