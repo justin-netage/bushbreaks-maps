@@ -39,13 +39,50 @@ class Repository {
 		$results = [];
 		foreach ( $query->posts as $post ) {
 			$item = self::format_post( $post, $opts );
-			if ( $item !== null ) {
+			if ( $item !== null && $item['lat'] !== null && $item['lng'] !== null ) {
 				$results[] = $item;
 			}
 		}
 
 		wp_reset_postdata();
 		return $results;
+	}
+
+	/**
+	 * List accommodations that have no usable latitude/longitude.
+	 * Returns id, title, edit link, and the last sync status.
+	 */
+	public static function find_missing_coords(): array {
+		$opts = Settings::all();
+
+		$query = new \WP_Query(
+			[
+				'post_type'      => $opts['post_type'],
+				'post_status'    => [ 'publish', 'draft', 'pending', 'private', 'future' ],
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			]
+		);
+
+		$missing = [];
+		foreach ( $query->posts as $pid ) {
+			$lat = get_post_meta( (int) $pid, $opts['lat_field'], true );
+			$lng = get_post_meta( (int) $pid, $opts['lng_field'], true );
+			if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) ) {
+				$missing[] = [
+					'id'        => (int) $pid,
+					'title'     => get_the_title( $pid ),
+					'status'    => (string) get_post_meta( (int) $pid, Coords_Sync::META_STATUS, true ),
+					'edit_link' => get_edit_post_link( (int) $pid, 'raw' ),
+				];
+			}
+		}
+
+		wp_reset_postdata();
+		return $missing;
 	}
 
 	private static function format_post( \WP_Post $post, array $opts ): ?array {
