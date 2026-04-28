@@ -14,7 +14,6 @@ class Settings {
 			'post_type'      => 'accommodation',
 			'lat_field'      => 'latitude',
 			'lng_field'      => 'longitude',
-			'featured_field' => 'featured',
 			'address_field'  => 'location',
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
@@ -22,7 +21,7 @@ class Settings {
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
-			'featured_limit' => 6,
+			'list_limit'     => 10,
 			'tile_url'       => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 			'tile_attr'      => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 		];
@@ -102,7 +101,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'featured_field', 'address_field', 'iframe_field', 'location_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'thumbnail_size', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -118,8 +117,8 @@ class Settings {
 		if ( isset( $input['map_zoom'] ) && is_numeric( $input['map_zoom'] ) ) {
 			$out['map_zoom'] = max( 1, min( 19, (int) $input['map_zoom'] ) );
 		}
-		if ( isset( $input['featured_limit'] ) && is_numeric( $input['featured_limit'] ) ) {
-			$out['featured_limit'] = max( 1, min( 50, (int) $input['featured_limit'] ) );
+		if ( isset( $input['list_limit'] ) && is_numeric( $input['list_limit'] ) ) {
+			$out['list_limit'] = max( 1, min( 50, (int) $input['list_limit'] ) );
 		}
 
 		return $out;
@@ -148,10 +147,6 @@ class Settings {
 					<tr>
 						<th><label for="bbm_lng"><?php esc_html_e( 'Longitude field', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_lng" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[lng_field]" type="text" value="<?php echo esc_attr( $opts['lng_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_featured"><?php esc_html_e( 'Featured boolean field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_featured" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[featured_field]" type="text" value="<?php echo esc_attr( $opts['featured_field'] ); ?>" class="regular-text"></td>
 					</tr>
 					<tr>
 						<th><label for="bbm_address"><?php esc_html_e( 'Address field (shown on cards)', 'bushbreaks-maps' ); ?></label></th>
@@ -188,8 +183,8 @@ class Settings {
 						<td><input id="bbm_zoom" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[map_zoom]" type="number" min="1" max="19" value="<?php echo esc_attr( (string) $opts['map_zoom'] ); ?>" class="small-text"></td>
 					</tr>
 					<tr>
-						<th><label for="bbm_featured_limit"><?php esc_html_e( 'Featured list limit', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_featured_limit" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[featured_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['featured_limit'] ); ?>" class="small-text"></td>
+						<th><label for="bbm_list_limit"><?php esc_html_e( 'List limit', 'bushbreaks-maps' ); ?></label></th>
+						<td><input id="bbm_list_limit" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[list_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['list_limit'] ); ?>" class="small-text"></td>
 					</tr>
 					<tr>
 						<th><label for="bbm_tile"><?php esc_html_e( 'Map tile URL', 'bushbreaks-maps' ); ?></label></th>

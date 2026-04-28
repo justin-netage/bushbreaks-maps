@@ -16,9 +16,8 @@ class Repository {
 		$opts = Settings::all();
 
 		$defaults = [
-			'search'        => '',
-			'featured_only' => false,
-			'limit'         => -1,
+			'search' => '',
+			'limit'  => -1,
 		];
 		$args = array_merge( $defaults, $args );
 
@@ -33,27 +32,6 @@ class Repository {
 
 		if ( $args['search'] !== '' ) {
 			$query_args['s'] = $args['search'];
-		}
-
-		if ( $args['featured_only'] && $opts['featured_field'] !== '' ) {
-			$query_args['meta_query'] = [
-				'relation' => 'OR',
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => '1',
-					'compare' => '=',
-				],
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => 'yes',
-					'compare' => '=',
-				],
-				[
-					'key'     => $opts['featured_field'],
-					'value'   => 'true',
-					'compare' => '=',
-				],
-			];
 		}
 
 		$query = new \WP_Query( $query_args );
@@ -95,19 +73,6 @@ class Repository {
 			'address'   => $address,
 			'thumbnail' => $thumb ?: '',
 			'excerpt'   => $excerpt,
-			'featured'  => self::is_featured( $post->ID, $opts ),
 		];
-	}
-
-	private static function is_featured( int $post_id, array $opts ): bool {
-		if ( $opts['featured_field'] === '' ) {
-			return false;
-		}
-		$val = get_post_meta( $post_id, $opts['featured_field'], true );
-		if ( is_array( $val ) ) {
-			$val = reset( $val );
-		}
-		$val = strtolower( (string) $val );
-		return in_array( $val, [ '1', 'yes', 'true', 'on' ], true );
 	}
 }
