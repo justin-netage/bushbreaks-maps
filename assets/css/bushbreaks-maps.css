@@ -1,18 +1,33 @@
 .bbm-wrap {
 	display: grid;
 	grid-template-columns: minmax(280px, 380px) 1fr;
-	grid-template-rows: minmax(0, 1fr);
+	grid-template-rows: auto minmax(0, 1fr);
+	grid-template-areas:
+		"filters map"
+		"list    map";
 	gap: 16px;
 	height: var(--bbm-height, 600px);
 	font-family: inherit;
 	color: inherit;
 }
 
-.bbm-sidebar {
+.bbm-filters {
+	grid-area: filters;
 	display: flex;
 	flex-direction: column;
+	min-width: 0;
+}
+
+.bbm-list-region {
+	grid-area: list;
 	min-height: 0;
-	overflow: hidden;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.bbm-map {
+	grid-area: map;
 }
 
 .bbm-search {
@@ -218,7 +233,6 @@
 .bbm-list {
 	flex: 1 1 auto;
 	min-height: 0;
-	overflow-y: auto;
 	padding-right: 4px;
 }
 
@@ -414,11 +428,18 @@
 @media (max-width: 768px) {
 	.bbm-wrap {
 		grid-template-columns: 1fr;
+		grid-template-rows: auto auto auto;
+		grid-template-areas:
+			"filters"
+			"map"
+			"list";
 		height: auto;
+		gap: 12px;
 	}
 
-	.bbm-sidebar {
-		max-height: none;
+	.bbm-list-region {
+		overflow: visible;
+		min-height: 0;
 	}
 
 	.bbm-map {

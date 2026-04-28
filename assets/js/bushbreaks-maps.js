@@ -198,13 +198,14 @@
 
 		function mapInit(el) {
 			if (isGoogle) {
+				var coarsePointer = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 				gmap = new google.maps.Map(el, {
 					center: { lat: data.center.lat, lng: data.center.lng },
 					zoom: data.zoom,
 					mapTypeControl: false,
 					streetViewControl: false,
 					fullscreenControl: true,
-					gestureHandling: 'greedy',
+					gestureHandling: coarsePointer ? 'cooperative' : 'greedy',
 				});
 				ginfo = new google.maps.InfoWindow();
 			} else {
