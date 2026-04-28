@@ -102,6 +102,35 @@
 		return marker;
 	}
 
+	function showOnlyMarkers(ids) {
+		var allow = {};
+		(ids || []).forEach(function (id) { allow[String(id)] = true; });
+		Object.keys(markersById).forEach(function (id) {
+			var marker = markersById[id];
+			if (allow[String(id)]) {
+				if (!map.hasLayer(marker)) marker.addTo(map);
+			} else {
+				if (map.hasLayer(marker)) map.removeLayer(marker);
+			}
+		});
+	}
+
+	function showAllMarkers() {
+		Object.keys(markersById).forEach(function (id) {
+			var marker = markersById[id];
+			if (!map.hasLayer(marker)) marker.addTo(map);
+		});
+	}
+
+	function fitToAllMarkers() {
+		var visible = [];
+		Object.keys(markersById).forEach(function (id) { visible.push(markersById[id]); });
+		if (visible.length > 0) {
+			var group = L.featureGroup(visible);
+			map.flyToBounds(group.getBounds().pad(0.15), { duration: 0.6 });
+		}
+	}
+
 	(data.locations || []).forEach(addMarker);
 
 	if (allMarkers.length > 0) {
@@ -209,10 +238,16 @@
 	var searchTimer = null;
 	var lastReq = 0;
 
+	function resetMapToAll() {
+		showAllMarkers();
+		fitToAllMarkers();
+	}
+
 	function runSearch(term) {
 		term = term.trim();
 		if (term === '') {
 			showList();
+			resetMapToAll();
 			return;
 		}
 
@@ -227,15 +262,21 @@
 				if (reqId !== lastReq) return;
 				if (!json || !json.success) {
 					showList();
+					resetMapToAll();
 					return;
 				}
 				var items = (json.data && json.data.results) || [];
+				var ids = items.map(function (i) { return i.id; });
 				renderResults(items);
 				showResults();
+				showOnlyMarkers(ids);
 				fitToItems(items);
 			})
 			.catch(function () {
-				if (reqId === lastReq) showList();
+				if (reqId === lastReq) {
+					showList();
+					resetMapToAll();
+				}
 			});
 	}
 
