@@ -18,12 +18,16 @@
 .bbm-wrap .bbm-search {
 	flex: 0 0 auto;
 	margin-bottom: 12px;
-	position: relative !important;
+	display: flex !important;
+	align-items: center;
+	gap: 8px;
+	position: static;
 }
 
 .bbm-search-input {
-	width: 100%;
-	padding: 10px 38px 10px 14px;
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 10px 14px;
 	font-size: 15px;
 	border: 1px solid #cfd4da;
 	border-radius: 6px;
@@ -37,14 +41,12 @@
 }
 
 .bbm-wrap .bbm-search-spinner {
-	position: absolute !important;
-	top: 50% !important;
-	right: 12px !important;
-	left: auto !important;
-	bottom: auto !important;
+	flex: 0 0 18px;
+	width: 18px !important;
+	height: 18px !important;
 	margin: 0 !important;
-	width: 18px;
-	height: 18px;
+	padding: 0 !important;
+	display: block !important;
 	box-sizing: border-box;
 	border: 2px solid #cfd4da;
 	border-top-color: #2c7a3d;
@@ -52,7 +54,6 @@
 	background: transparent;
 	opacity: 0;
 	pointer-events: none;
-	transform: translateY(-50%);
 	transition: opacity 0.15s ease;
 }
 
@@ -62,8 +63,7 @@
 }
 
 @keyframes bbm-spin {
-	from { transform: translateY(-50%) rotate(0deg); }
-	to   { transform: translateY(-50%) rotate(360deg); }
+	to { transform: rotate(360deg); }
 }
 
 .bbm-results,
