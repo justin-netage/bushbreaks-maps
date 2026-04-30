@@ -38,6 +38,7 @@
 		var resultsList = wrap ? wrap.querySelector('.bbm-results-list') : null;
 		var listEl = wrap ? wrap.querySelector('.bbm-list') : null;
 		var loaderEl = wrap ? wrap.querySelector('.bbm-loader') : null;
+		var resultCountEl = wrap ? wrap.querySelector('.bbm-result-count') : null;
 
 		// Map handles — populated by mapInit().
 		var lmap = null;       // Leaflet map
@@ -53,8 +54,18 @@
 		var markerCfg = icons.marker || {};
 		var clusterCfg = icons.cluster || {};
 
+		function setResultCount(n) {
+			if (!resultCountEl) return;
+			var count = parseInt(n, 10) || 0;
+			var template = count === 1
+				? (data.i18n.resultsCountSingle || '1 lodge')
+				: (data.i18n.resultsCountPlural || '%d lodges');
+			resultCountEl.textContent = template.replace('%d', count);
+		}
+
 		mapInit(mapEl);
 		(data.locations || []).forEach(addMarker);
+		setResultCount((data.locations || []).length);
 		if (isGoogle && allMarkers.length > 0) {
 			gcluster = new markerClusterer.MarkerClusterer(buildGoogleClusterOptions());
 		}
@@ -503,6 +514,7 @@
 			if (!hasFilter) {
 				showList();
 				resetMapToAll();
+				setResultCount((data.locations || []).length);
 				return;
 			}
 
@@ -524,9 +536,11 @@
 					if (!json || !json.success) {
 						showList();
 						resetMapToAll();
+						setResultCount((data.locations || []).length);
 						return;
 					}
 					var items = (json.data && json.data.results) || [];
+					setResultCount(items.length);
 					if (items.length === 0) {
 						renderResults(items);
 						showResults();
@@ -546,6 +560,7 @@
 					if (reqId === lastReq) {
 						showList();
 						resetMapToAll();
+						setResultCount((data.locations || []).length);
 					}
 				});
 		}
