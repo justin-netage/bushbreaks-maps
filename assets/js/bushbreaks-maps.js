@@ -56,6 +56,10 @@
 
 		function setResultCount(n) {
 			if (!resultCountEl) return;
+			if (n === null || n === undefined) {
+				resultCountEl.textContent = '';
+				return;
+			}
 			var count = parseInt(n, 10) || 0;
 			var template = count === 1
 				? (data.i18n.resultsCountSingle || '1 lodge')
@@ -65,7 +69,6 @@
 
 		mapInit(mapEl);
 		(data.locations || []).forEach(addMarker);
-		setResultCount((data.locations || []).length);
 		if (isGoogle && allMarkers.length > 0) {
 			gcluster = new markerClusterer.MarkerClusterer(buildGoogleClusterOptions());
 		}
@@ -514,7 +517,7 @@
 			if (!hasFilter) {
 				showList();
 				resetMapToAll();
-				setResultCount((data.locations || []).length);
+				setResultCount(null);
 				return;
 			}
 
@@ -536,7 +539,7 @@
 					if (!json || !json.success) {
 						showList();
 						resetMapToAll();
-						setResultCount((data.locations || []).length);
+						setResultCount(null);
 						return;
 					}
 					var items = (json.data && json.data.results) || [];
@@ -560,7 +563,7 @@
 					if (reqId === lastReq) {
 						showList();
 						resetMapToAll();
-						setResultCount((data.locations || []).length);
+						setResultCount(null);
 					}
 				});
 		}
