@@ -188,7 +188,6 @@ class Shortcode {
 					'searching'            => __( 'Searching lodges…', 'bushbreaks-maps' ),
 					'categoryPlaceholder'  => __( 'Filter by category…', 'bushbreaks-maps' ),
 					'removeCategory'       => __( 'Remove filter', 'bushbreaks-maps' ),
-					'closePopup'           => __( 'Close', 'bushbreaks-maps' ),
 				],
 			]
 		);
