@@ -207,7 +207,7 @@
 					fullscreenControl: true,
 					gestureHandling: coarsePointer ? 'cooperative' : 'greedy',
 				});
-				ginfo = new google.maps.InfoWindow();
+				ginfo = new google.maps.InfoWindow({ maxWidth: 280 });
 			} else {
 				lmap = L.map(el, { scrollWheelZoom: true })
 					.setView([data.center.lat, data.center.lng], data.zoom);
@@ -582,7 +582,7 @@
 		}
 
 		function popupHtml(item) {
-			var parts = [];
+			var parts = ['<div class="bbm-popup">'];
 			if (item.thumbnail) {
 				parts.push('<div class="bbm-popup-thumb" style="background-image:url(\'' + escapeAttr(item.thumbnail) + '\')"></div>');
 			}
@@ -595,6 +595,7 @@
 				parts.push('<p class="bbm-card-excerpt" style="-webkit-line-clamp:3;">' + escapeHtml(item.excerpt) + '</p>');
 			}
 			parts.push('<a class="bbm-popup-link" href="' + escapeAttr(item.permalink) + '">' + escapeHtml(data.i18n.viewDetails) + ' &rarr;</a>');
+			parts.push('</div>');
 			return parts.join('');
 		}
 
