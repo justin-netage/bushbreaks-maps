@@ -425,6 +425,14 @@
 	text-decoration: underline;
 }
 
+.bbm-popup {
+	position: relative;
+}
+
+.bbm-popup-close {
+	display: none;
+}
+
 @media (max-width: 768px) {
 	.bbm-wrap {
 		grid-template-columns: 1fr;
@@ -487,5 +495,32 @@
 	.bbm-popup .bbm-popup-link {
 		margin-top: 4px;
 		font-size: 12px;
+		padding-right: 28px;
+	}
+
+	.bbm-popup-close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.6);
+		color: #fff;
+		font-size: 16px;
+		line-height: 1;
+		cursor: pointer;
+		z-index: 2;
+	}
+
+	.bbm-popup-close:hover,
+	.bbm-popup-close:focus {
+		background: rgba(0, 0, 0, 0.85);
+		outline: none;
 	}
 }

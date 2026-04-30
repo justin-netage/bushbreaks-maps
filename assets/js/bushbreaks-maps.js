@@ -88,6 +88,19 @@
 		}
 
 		bindCardInteractions(listEl);
+
+		// Custom popup close button (rendered inside .bbm-popup; CSS shows it on mobile)
+		wrap.addEventListener('click', function (e) {
+			if (!e.target.closest('.bbm-popup-close')) return;
+			e.preventDefault();
+			e.stopPropagation();
+			if (isGoogle && ginfo) {
+				ginfo.close();
+			} else if (lmap) {
+				lmap.closePopup();
+			}
+		});
+
 		if (searchInput) {
 			searchInput.addEventListener('input', function () {
 				clearTimeout(searchTimer);
@@ -595,6 +608,7 @@
 				parts.push('<p class="bbm-card-excerpt" style="-webkit-line-clamp:3;">' + escapeHtml(item.excerpt) + '</p>');
 			}
 			parts.push('<a class="bbm-popup-link" href="' + escapeAttr(item.permalink) + '">' + escapeHtml(data.i18n.viewDetails) + ' &rarr;</a>');
+			parts.push('<button type="button" class="bbm-popup-close" aria-label="' + escapeAttr(data.i18n.closePopup || 'Close') + '">&times;</button>');
 			parts.push('</div>');
 			return parts.join('');
 		}
