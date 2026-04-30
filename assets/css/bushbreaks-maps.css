@@ -445,4 +445,12 @@
 	.bbm-map {
 		height: 360px;
 	}
+
+	.bbm-popup .bbm-popup-thumb {
+		height: 70px;
+	}
+
+	.bbm-popup .bbm-card-excerpt {
+		-webkit-line-clamp: 2;
+	}
 }
