@@ -425,6 +425,20 @@
 	text-decoration: underline;
 }
 
+.bbm-popup a {
+	-webkit-tap-highlight-color: transparent;
+}
+
+.bbm-popup a:focus {
+	outline: none;
+}
+
+.bbm-popup a:focus-visible {
+	outline: 2px solid #8AD000;
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
 @media (max-width: 768px) {
 	.bbm-wrap {
 		grid-template-columns: 1fr;
@@ -461,11 +475,5 @@
 		width: 16px !important;
 		height: 16px !important;
 		margin: 6px !important;
-	}
-
-	/* Let the popup grow taller — override Google's auto-imposed cap */
-	.bbm-wrap .gm-style-iw-d {
-		max-height: 380px !important;
-		overflow: visible !important;
 	}
 }
