@@ -425,14 +425,6 @@
 	text-decoration: underline;
 }
 
-.bbm-popup {
-	position: relative;
-}
-
-.bbm-popup-close {
-	display: none;
-}
-
 @media (max-width: 768px) {
 	.bbm-wrap {
 		grid-template-columns: 1fr;
@@ -454,75 +446,11 @@
 		height: 360px;
 	}
 
-	/* Hide popup close buttons on mobile — tapping the map dismisses */
-	.bbm-wrap .gm-ui-hover-effect,
-	.bbm-wrap .leaflet-popup-close-button {
-		display: none !important;
-	}
-
-	/* Recover the padding Google reserves for the close button */
-	.bbm-wrap .gm-style-iw-c {
-		padding: 8px !important;
-	}
-
-	.bbm-wrap .gm-style-iw-d {
-		overflow: hidden !important;
-		padding: 0 !important;
-	}
-
-	.bbm-wrap .leaflet-popup-content {
-		margin: 8px 10px !important;
-	}
-
 	.bbm-popup .bbm-popup-thumb {
-		height: 60px;
-		margin-bottom: 4px;
-	}
-
-	.bbm-popup .bbm-popup-title {
-		font-size: 13px;
-		margin-bottom: 2px;
-	}
-
-	.bbm-popup .bbm-card-address {
-		font-size: 11px;
+		height: 80px;
 	}
 
 	.bbm-popup .bbm-card-excerpt {
-		display: none;
-	}
-
-	.bbm-popup .bbm-popup-link {
-		margin-top: 4px;
-		font-size: 12px;
-	}
-
-	.bbm-popup-close {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		position: absolute;
-		top: 6px;
-		right: 6px;
-		width: 22px;
-		height: 22px;
-		padding: 0;
-		border: 0;
-		border-radius: 50%;
-		background: rgba(255, 255, 255, 0.95);
-		color: #444;
-		font-size: 14px;
-		font-weight: 600;
-		line-height: 1;
-		cursor: pointer;
-		z-index: 2;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-	}
-
-	.bbm-popup-close:hover,
-	.bbm-popup-close:focus {
-		background: #fff;
-		color: #1a1a1a;
-		outline: none;
+		-webkit-line-clamp: 2;
 	}
 }
