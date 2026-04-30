@@ -30,6 +30,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</div>
 			<div class="bbm-category-chips" role="list"></div>
 		</div>
+
+		<div class="bbm-result-count" aria-live="polite"></div>
 	</div>
 
 	<div class="bbm-map" id="bbm-map" role="application" aria-label="Map of accommodations"></div>
