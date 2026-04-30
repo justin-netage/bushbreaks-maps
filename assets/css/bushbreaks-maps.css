@@ -446,14 +446,6 @@
 		height: 360px;
 	}
 
-	.bbm-popup .bbm-popup-thumb {
-		height: 80px;
-	}
-
-	.bbm-popup .bbm-card-excerpt {
-		-webkit-line-clamp: 2;
-	}
-
 	/* Shrink Google's default 48px close-button chrome on mobile */
 	.bbm-wrap .gm-style-iw-chr {
 		height: 32px !important;
