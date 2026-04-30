@@ -75,7 +75,8 @@ class Repository {
 
 	/**
 	 * Build the ID set for a search: title/content matches UNION posts
-	 * tagged with destination terms whose name matches the query.
+	 * tagged with destination terms whose name matches the query UNION
+	 * posts whose Pods location field contains the query.
 	 */
 	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [] ): array {
 		$ids = null; // null = no constraint applied yet
@@ -123,6 +124,27 @@ class Repository {
 					);
 					$ids = array_merge( $ids, $tax_query->posts );
 				}
+			}
+
+			$location_field = (string) ( $opts['location_field'] ?? '' );
+			if ( $location_field !== '' ) {
+				$location_query = new \WP_Query(
+					array_merge(
+						$base_args,
+						[
+							'posts_per_page' => -1,
+							'fields'         => 'ids',
+							'meta_query'     => [
+								[
+									'key'     => $location_field,
+									'value'   => $term,
+									'compare' => 'LIKE',
+								],
+							],
+						]
+					)
+				);
+				$ids = array_merge( $ids, $location_query->posts );
 			}
 		}
 
