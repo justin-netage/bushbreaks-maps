@@ -462,10 +462,4 @@
 		height: 16px !important;
 		margin: 6px !important;
 	}
-
-	/* Let the popup grow taller — override Google's auto-imposed cap */
-	.bbm-wrap .gm-style-iw-d {
-		max-height: 380px !important;
-		overflow: visible !important;
-	}
 }
