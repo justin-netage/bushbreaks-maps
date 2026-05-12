@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.7.8
+Stable tag: 0.7.9
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.7.9 =
+* Change plugin author to Net Age.
 
 = 0.7.8 =
 * Re-cut release so the tagged commit contains the bumped version metadata; PUC can now detect the update.
