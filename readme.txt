@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.7.5
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -32,5 +32,5 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 
 == Changelog ==
 
-= 0.1.0 =
+= 0.7.5 =
 * Initial release.
