@@ -59,6 +59,7 @@ class Settings {
 		add_action( 'admin_menu', [ $this, 'add_menu' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'wp_ajax_bushbreaks_maps_reorder_categories', [ $this, 'ajax_reorder_categories' ] );
+		add_action( 'wp_ajax_bushbreaks_maps_reorder_destinations', [ $this, 'ajax_reorder_destinations' ] );
 	}
 
 	public function add_menu(): void {
@@ -87,9 +88,10 @@ class Settings {
 				'bushbreaks-maps-admin',
 				'BushbreaksMapsAdmin',
 				[
-					'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-					'nonce'        => wp_create_nonce( 'bushbreaks_maps_backfill' ),
-					'reorderNonce' => wp_create_nonce( 'bushbreaks_maps_reorder_categories' ),
+					'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+					'nonce'             => wp_create_nonce( 'bushbreaks_maps_backfill' ),
+					'reorderNonce'      => wp_create_nonce( 'bushbreaks_maps_reorder_categories' ),
+					'reorderDestNonce'  => wp_create_nonce( 'bushbreaks_maps_reorder_destinations' ),
 					'i18n'    => [
 						'starting'    => __( 'Starting…', 'bushbreaks-maps' ),
 						'progress'    => __( 'Processed %1$s of %2$s…', 'bushbreaks-maps' ),
@@ -348,6 +350,12 @@ class Settings {
 
 			<hr />
 
+			<h2><?php esc_html_e( 'Region order', 'bushbreaks-maps' ); ?></h2>
+			<p><?php esc_html_e( 'Drag to reorder regions and their child reserves. Each list can be reordered independently; to move a reserve between regions, change its parent on the WordPress term edit page.', 'bushbreaks-maps' ); ?></p>
+			<?php $this->render_destination_order_list( $opts ); ?>
+
+			<hr />
+
 			<?php
 			$missing       = Repository::find_missing_coords();
 			$missing_count = count( $missing );
@@ -453,12 +461,12 @@ class Settings {
 		<?php
 	}
 
-	public static function sort_terms_by_order( array $terms ): array {
-		usort( $terms, function ( $a, $b ) {
+	public static function sort_terms_by_order( array $terms, string $meta_key = '_bbm_category_order' ): array {
+		usort( $terms, function ( $a, $b ) use ( $meta_key ) {
 			$id_a = is_object( $a ) ? (int) $a->term_id : (int) ( $a['id'] ?? 0 );
 			$id_b = is_object( $b ) ? (int) $b->term_id : (int) ( $b['id'] ?? 0 );
-			$oa   = (int) get_term_meta( $id_a, '_bbm_category_order', true );
-			$ob   = (int) get_term_meta( $id_b, '_bbm_category_order', true );
+			$oa   = (int) get_term_meta( $id_a, $meta_key, true );
+			$ob   = (int) get_term_meta( $id_b, $meta_key, true );
 
 			if ( $oa === $ob ) {
 				$name_a = is_object( $a ) ? $a->name : (string) ( $a['name'] ?? '' );
@@ -488,6 +496,86 @@ class Settings {
 			$tid = (int) $term_id;
 			if ( $tid > 0 ) {
 				update_term_meta( $tid, '_bbm_category_order', $position );
+				$position++;
+			}
+		}
+
+		wp_send_json_success();
+	}
+
+	private function render_destination_order_list( array $opts ): void {
+		$tax_slug = (string) ( $opts['destination_taxonomy'] ?? '' );
+		if ( $tax_slug === '' || ! taxonomy_exists( $tax_slug ) ) {
+			echo '<p><em>' . esc_html__( 'Set the Destination taxonomy slug above before configuring order.', 'bushbreaks-maps' ) . '</em></p>';
+			return;
+		}
+
+		$terms = get_terms(
+			[
+				'taxonomy'   => $tax_slug,
+				'hide_empty' => false,
+			]
+		);
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			echo '<p><em>' . esc_html__( 'No destinations found in this taxonomy.', 'bushbreaks-maps' ) . '</em></p>';
+			return;
+		}
+
+		$by_parent = [];
+		foreach ( $terms as $t ) {
+			$pid = (int) ( $t->parent ?? 0 );
+			$by_parent[ $pid ][] = $t;
+		}
+		foreach ( $by_parent as $k => $list ) {
+			$by_parent[ $k ] = self::sort_terms_by_order( $list, '_bbm_destination_order' );
+		}
+
+		?>
+		<style>
+			.bbm-dest-sortable { list-style: none; margin: 8px 0; padding: 0; max-width: 480px; }
+			.bbm-dest-sortable .bbm-sort-item { display: block; padding: 0; margin: 0 0 4px; background: transparent; border: 0; }
+			.bbm-dest-sortable .bbm-sort-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; }
+			.bbm-dest-sortable .bbm-dest-sortable { margin: 4px 0 0 24px; }
+			.bbm-dest-sortable .bbm-dest-sortable .bbm-sort-row { background: #f7f8f9; }
+		</style>
+		<ul class="bbm-sortable bbm-dest-sortable" data-parent="0">
+		<?php
+		foreach ( $by_parent[0] ?? [] as $parent ) {
+			$this->render_destination_node( $parent, $by_parent );
+		}
+		echo '</ul>';
+		echo '<p><span id="bbm-dest-order-status" class="description" style="margin-left:0;"></span></p>';
+	}
+
+	private function render_destination_node( $term, array $by_parent ): void {
+		$children = $by_parent[ (int) $term->term_id ] ?? [];
+		echo '<li class="bbm-sort-item" data-id="' . esc_attr( (string) $term->term_id ) . '">';
+		echo '<div class="bbm-sort-row">';
+		echo '<span class="bbm-sort-handle" aria-hidden="true">&#8801;</span>';
+		echo '<span class="bbm-sort-label">' . esc_html( $term->name ) . '</span>';
+		echo '</div>';
+		if ( ! empty( $children ) ) {
+			echo '<ul class="bbm-sortable bbm-dest-sortable" data-parent="' . esc_attr( (string) $term->term_id ) . '">';
+			foreach ( $children as $child ) {
+				$this->render_destination_node( $child, $by_parent );
+			}
+			echo '</ul>';
+		}
+		echo '</li>';
+	}
+
+	public function ajax_reorder_destinations(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'forbidden' ], 403 );
+		}
+		check_ajax_referer( 'bushbreaks_maps_reorder_destinations', 'nonce' );
+
+		$order    = isset( $_POST['order'] ) && is_array( $_POST['order'] ) ? wp_unslash( $_POST['order'] ) : [];
+		$position = 1;
+		foreach ( $order as $term_id ) {
+			$tid = (int) $term_id;
+			if ( $tid > 0 ) {
+				update_term_meta( $tid, '_bbm_destination_order', $position );
 				$position++;
 			}
 		}

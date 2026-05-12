@@ -52,14 +52,13 @@
 
 .bbm-search-input:hover,
 .bbm-category-toggle:hover {
-	border-color: #8AD000;
+	border-color: #98a2b3;
 }
 
 .bbm-search-input:focus,
 .bbm-category-toggle:focus,
 .bbm-category-toggle[aria-expanded="true"] {
-	border-color: #8AD000;
-	box-shadow: 0 0 0 2px rgba(138, 208, 0, 0.22);
+	border-color: #98a2b3;
 	outline: none;
 }
 
@@ -171,10 +170,8 @@
 	padding: 0;
 	border: 0;
 	background: transparent;
-	color: #6a7280;
+	color: #98a2b3;
 	cursor: pointer;
-	font-size: 10px;
-	line-height: 1;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -183,14 +180,24 @@
 	transition: transform 0.18s ease, background 0.12s ease, color 0.12s ease;
 }
 
+.bbm-tree-toggle::before {
+	content: '';
+	display: block;
+	width: 7px;
+	height: 7px;
+	border-top: 1.5px solid currentColor;
+	border-right: 1.5px solid currentColor;
+	transform: rotate(45deg) translate(-1px, 1px);
+}
+
 .bbm-tree-toggle:hover {
 	background: rgba(0, 0, 0, 0.06);
-	color: #1a1a1a;
+	color: #475467;
 }
 
 .bbm-tree-toggle[aria-expanded="true"] {
 	transform: rotate(90deg);
-	color: #1a1a1a;
+	color: #475467;
 }
 
 .bbm-tree-spacer {

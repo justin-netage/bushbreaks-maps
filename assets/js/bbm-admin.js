@@ -66,6 +66,44 @@
 				},
 			}).disableSelection();
 		}
+
+		// Destinations: nested sortable (provinces + reserves)
+		var $destStatus = jQuery('#bbm-dest-order-status');
+		jQuery('.bbm-dest-sortable').each(function () {
+			var $u = jQuery(this);
+			$u.sortable({
+				items: '> li.bbm-sort-item',
+				handle: '> .bbm-sort-row > .bbm-sort-handle',
+				axis: 'y',
+				cursor: 'grabbing',
+				placeholder: 'bbm-sort-placeholder',
+				forcePlaceholderSize: true,
+				update: function (e, ui) {
+					if (ui && ui.item.parent()[0] !== $u[0]) return;
+
+					var order = $u.children('li.bbm-sort-item').map(function () {
+						return jQuery(this).data('id');
+					}).get();
+
+					if (cfg.i18n && cfg.i18n.saving) $destStatus.text(cfg.i18n.saving);
+
+					jQuery.post(cfg.ajaxUrl, {
+						action: 'bushbreaks_maps_reorder_destinations',
+						nonce: cfg.reorderDestNonce,
+						order: order,
+					}).done(function (json) {
+						if (json && json.success) {
+							$destStatus.text(cfg.i18n && cfg.i18n.saved ? cfg.i18n.saved : 'Saved');
+							setTimeout(function () { $destStatus.text(''); }, 1500);
+						} else {
+							$destStatus.text(cfg.i18n && cfg.i18n.saveFailed ? cfg.i18n.saveFailed : 'Save failed');
+						}
+					}).fail(function () {
+						$destStatus.text(cfg.i18n && cfg.i18n.saveFailed ? cfg.i18n.saveFailed : 'Save failed');
+					});
+				},
+			}).disableSelection();
+		});
 	}
 
 	var btn = document.getElementById('bbm-backfill');
