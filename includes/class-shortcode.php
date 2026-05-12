@@ -141,6 +141,49 @@ class Shortcode {
 			}
 		}
 
+		$destinations  = [];
+		$dest_tax_slug = (string) ( $opts['destination_taxonomy'] ?? '' );
+		if ( $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
+			$dest_terms = get_terms(
+				[
+					'taxonomy'   => $dest_tax_slug,
+					'hide_empty' => false,
+				]
+			);
+			if ( ! is_wp_error( $dest_terms ) && ! empty( $dest_terms ) ) {
+				$by_parent = [];
+				foreach ( $dest_terms as $t ) {
+					$pid = (int) ( $t->parent ?? 0 );
+					$by_parent[ $pid ][] = $t;
+				}
+				foreach ( $by_parent as $k => $list ) {
+					usort(
+						$list,
+						function ( $a, $b ) {
+							return strcmp( $a->name, $b->name );
+						}
+					);
+					$by_parent[ $k ] = $list;
+				}
+
+				$walker = function ( $parent_id, $depth ) use ( &$walker, &$by_parent, &$destinations ) {
+					if ( empty( $by_parent[ $parent_id ] ) ) {
+						return;
+					}
+					foreach ( $by_parent[ $parent_id ] as $t ) {
+						$destinations[] = [
+							'id'    => (int) $t->term_id,
+							'slug'  => $t->slug,
+							'name'  => $t->name,
+							'depth' => (int) $depth,
+						];
+						$walker( (int) $t->term_id, $depth + 1 );
+					}
+				};
+				$walker( 0, 0 );
+			}
+		}
+
 		$api_key = trim( (string) ( $opts['google_maps_api_key'] ?? '' ) );
 		$provider = $api_key !== '' ? 'google' : 'leaflet';
 
@@ -178,17 +221,20 @@ class Shortcode {
 						'size' => (int) $opts['cluster_icon_size'],
 					],
 				],
-				'categories' => $categories,
+				'categories'   => $categories,
+				'destinations' => $destinations,
 				'i18n'      => [
-					'searchPlaceholder'    => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-					'listHeading'          => __( 'Lodges', 'bushbreaks-maps' ),
-					'noResults'            => __( 'No lodges match your search.', 'bushbreaks-maps' ),
-					'viewDetails'          => __( 'View details', 'bushbreaks-maps' ),
-					'searching'            => __( 'Searching lodges…', 'bushbreaks-maps' ),
-					'categoryPlaceholder'  => __( 'Filter by category…', 'bushbreaks-maps' ),
-					'removeCategory'       => __( 'Remove filter', 'bushbreaks-maps' ),
-					'resultsCountSingle'   => __( '1 lodge', 'bushbreaks-maps' ),
-					'resultsCountPlural'   => __( '%d lodges', 'bushbreaks-maps' ),
+					'searchPlaceholder'       => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
+					'listHeading'             => __( 'Lodges', 'bushbreaks-maps' ),
+					'noResults'               => __( 'No lodges match your search.', 'bushbreaks-maps' ),
+					'viewDetails'             => __( 'View details', 'bushbreaks-maps' ),
+					'searching'               => __( 'Searching lodges…', 'bushbreaks-maps' ),
+					'categoryPlaceholder'     => __( 'Filter by category…', 'bushbreaks-maps' ),
+					'removeCategory'          => __( 'Remove filter', 'bushbreaks-maps' ),
+					'destinationPlaceholder'  => __( 'Filter by destination…', 'bushbreaks-maps' ),
+					'removeDestination'       => __( 'Remove destination filter', 'bushbreaks-maps' ),
+					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
+					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
 				],
 			]
 		);
@@ -197,11 +243,12 @@ class Shortcode {
 		$template = BUSHBREAKS_MAPS_DIR . 'templates/map-display.php';
 		$height   = $atts['height'];
 		$i18n     = [
-			'searchPlaceholder'   => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-			'listHeading'         => __( 'Lodges', 'bushbreaks-maps' ),
-			'viewDetails'         => __( 'View details', 'bushbreaks-maps' ),
-			'searching'           => __( 'Searching lodges…', 'bushbreaks-maps' ),
-			'categoryPlaceholder' => __( 'Filter by category…', 'bushbreaks-maps' ),
+			'searchPlaceholder'      => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
+			'listHeading'            => __( 'Lodges', 'bushbreaks-maps' ),
+			'viewDetails'            => __( 'View details', 'bushbreaks-maps' ),
+			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
+			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
+			'destinationPlaceholder' => __( 'Filter by destination…', 'bushbreaks-maps' ),
 		];
 		include $template;
 		return (string) ob_get_clean();

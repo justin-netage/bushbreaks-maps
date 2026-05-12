@@ -26,11 +26,21 @@ class Ajax {
 			}
 		}
 
+		$dests = [];
+		if ( isset( $_GET['dests'] ) && is_array( $_GET['dests'] ) ) {
+			foreach ( wp_unslash( $_GET['dests'] ) as $d ) {
+				if ( is_numeric( $d ) && (int) $d > 0 ) {
+					$dests[] = (int) $d;
+				}
+			}
+		}
+
 		$results = Repository::query(
 			[
-				'search'       => $term,
-				'category_ids' => $cats,
-				'limit'        => 50,
+				'search'          => $term,
+				'category_ids'    => $cats,
+				'destination_ids' => $dests,
+				'limit'            => 50,
 			]
 		);
 

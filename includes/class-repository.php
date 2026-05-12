@@ -16,9 +16,10 @@ class Repository {
 		$opts = Settings::all();
 
 		$defaults = [
-			'search'       => '',
-			'limit'        => -1,
-			'category_ids' => [],
+			'search'          => '',
+			'limit'           => -1,
+			'category_ids'    => [],
+			'destination_ids' => [],
 		];
 		$args = array_merge( $defaults, $args );
 
@@ -30,10 +31,11 @@ class Repository {
 			'no_found_rows' => true,
 		];
 
-		$has_search   = $args['search'] !== '';
-		$has_category = ! empty( $args['category_ids'] );
+		$has_search      = $args['search'] !== '';
+		$has_category    = ! empty( $args['category_ids'] );
+		$has_destination = ! empty( $args['destination_ids'] );
 
-		if ( ! $has_search && ! $has_category ) {
+		if ( ! $has_search && ! $has_category && ! $has_destination ) {
 			$query = new \WP_Query(
 				array_merge(
 					$base_args,
@@ -42,7 +44,13 @@ class Repository {
 			);
 			$posts = $query->posts;
 		} else {
-			$ids = self::collect_search_ids( $args['search'], $opts, $base_args, (array) $args['category_ids'] );
+			$ids = self::collect_search_ids(
+				$args['search'],
+				$opts,
+				$base_args,
+				(array) $args['category_ids'],
+				(array) $args['destination_ids']
+			);
 			if ( empty( $ids ) ) {
 				return [];
 			}
@@ -78,7 +86,7 @@ class Repository {
 	 * tagged with destination terms whose name matches the query UNION
 	 * posts whose Pods location field contains the query.
 	 */
-	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [] ): array {
+	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [], array $destination_ids = [] ): array {
 		$ids = null; // null = no constraint applied yet
 
 		if ( $term !== '' ) {
@@ -145,6 +153,36 @@ class Repository {
 					)
 				);
 				$ids = array_merge( $ids, $location_query->posts );
+			}
+		}
+
+		// Intersect with destination filter (any-of semantics within filter)
+		if ( ! empty( $destination_ids ) ) {
+			$dest_taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
+			if ( $dest_taxonomy !== '' && taxonomy_exists( $dest_taxonomy ) ) {
+				$dest_query = new \WP_Query(
+					array_merge(
+						$base_args,
+						[
+							'posts_per_page' => -1,
+							'fields'         => 'ids',
+							'tax_query'      => [
+								[
+									'taxonomy' => $dest_taxonomy,
+									'field'    => 'term_id',
+									'terms'    => array_map( 'intval', $destination_ids ),
+								],
+							],
+						]
+					)
+				);
+				$dest_post_ids = $dest_query->posts;
+
+				if ( $ids === null ) {
+					$ids = $dest_post_ids;
+				} else {
+					$ids = array_intersect( $ids, $dest_post_ids );
+				}
 			}
 		}
 

@@ -20,7 +20,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 			/>
 		</div>
 
-		<div class="bbm-categories" hidden>
+		<div class="bbm-destinations bbm-filter-group" hidden>
+			<div class="bbm-category-dropdown">
+				<button type="button" class="bbm-category-toggle bbm-destination-toggle" aria-expanded="false" aria-haspopup="listbox">
+					<span class="bbm-category-toggle-label bbm-destination-toggle-label"><?php echo esc_html( $i18n['destinationPlaceholder'] ?? 'Filter by destination…' ); ?></span>
+					<span class="bbm-category-toggle-arrow" aria-hidden="true">&#9662;</span>
+				</button>
+				<div class="bbm-category-panel bbm-destination-panel" role="listbox" aria-multiselectable="true" hidden></div>
+			</div>
+			<div class="bbm-category-chips bbm-destination-chips" role="list"></div>
+		</div>
+
+		<div class="bbm-categories bbm-filter-group" hidden>
 			<div class="bbm-category-dropdown">
 				<button type="button" class="bbm-category-toggle" aria-expanded="false" aria-haspopup="listbox">
 					<span class="bbm-category-toggle-label"><?php echo esc_html( $i18n['categoryPlaceholder'] ?? 'Filter by category…' ); ?></span>
