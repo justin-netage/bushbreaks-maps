@@ -96,17 +96,17 @@
 
 .bbm-category-panel {
 	position: absolute;
-	top: calc(100% + 4px);
+	top: calc(100% + 6px);
 	left: 0;
 	right: 0;
 	z-index: 1000;
-	max-height: 280px;
+	max-height: 300px;
 	overflow-y: auto;
 	background: #fff;
-	border: 1px solid #cfd4da;
-	border-radius: 6px;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
-	padding: 4px;
+	border: 1px solid #e3e6ea;
+	border-radius: 8px;
+	box-shadow: 0 12px 28px rgba(15, 30, 50, 0.10), 0 2px 6px rgba(15, 30, 50, 0.06);
+	padding: 6px;
 }
 
 .bbm-category-panel[hidden] {
@@ -139,18 +139,29 @@
 
 .bbm-tree-node {
 	display: block;
+	margin-bottom: 1px;
 }
 
 .bbm-tree-row {
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	padding: 4px 6px;
-	border-radius: 4px;
+	gap: 6px;
+	padding: 7px 8px;
+	border-radius: 6px;
+	transition: background 0.12s ease;
 }
 
 .bbm-tree-row:hover {
 	background: #f3f5f7;
+}
+
+.bbm-tree-node:has(> .bbm-tree-children:not([hidden])) > .bbm-tree-row {
+	background: #f6f8fa;
+}
+
+.bbm-tree-node:has(> .bbm-tree-children) > .bbm-tree-row .bbm-tree-label {
+	font-weight: 600;
+	color: #1a1a1a;
 }
 
 .bbm-tree-toggle {
@@ -162,16 +173,24 @@
 	background: transparent;
 	color: #6a7280;
 	cursor: pointer;
-	font-size: 11px;
+	font-size: 10px;
+	line-height: 1;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	border-radius: 4px;
-	line-height: 1;
+	transform-origin: center;
+	transition: transform 0.18s ease, background 0.12s ease, color 0.12s ease;
 }
 
 .bbm-tree-toggle:hover {
-	background: #e8ecf0;
+	background: rgba(0, 0, 0, 0.06);
+	color: #1a1a1a;
+}
+
+.bbm-tree-toggle[aria-expanded="true"] {
+	transform: rotate(90deg);
+	color: #1a1a1a;
 }
 
 .bbm-tree-spacer {
@@ -191,18 +210,29 @@
 	color: inherit;
 	margin: 0;
 	user-select: none;
+	min-width: 0;
+}
+
+.bbm-tree-label > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .bbm-tree-label input[type="checkbox"] {
 	accent-color: #8AD000;
-	width: 16px;
-	height: 16px;
+	width: 15px;
+	height: 15px;
 	margin: 0;
 	flex: 0 0 auto;
 }
 
 .bbm-tree-children {
-	padding-left: 22px;
+	padding-left: 16px;
+	margin-left: 11px;
+	margin-top: 2px;
+	margin-bottom: 4px;
+	border-left: 1.5px solid #e5e8eb;
 }
 
 .bbm-tree-children[hidden] {
