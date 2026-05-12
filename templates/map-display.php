@@ -42,7 +42,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="bbm-category-chips" role="list"></div>
 		</div>
 
-		<div class="bbm-result-count" aria-live="polite"></div>
+		<div class="bbm-filter-actions">
+			<div class="bbm-result-count" aria-live="polite"></div>
+			<button type="button" class="bbm-clear-all" hidden><?php echo esc_html( $i18n['clearAll'] ?? 'Clear all' ); ?></button>
+		</div>
 	</div>
 
 	<div class="bbm-map" id="bbm-map" role="application" aria-label="Map of accommodations"></div>
