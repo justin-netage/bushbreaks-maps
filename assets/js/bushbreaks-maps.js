@@ -110,103 +110,131 @@
 			});
 		}
 
-		// Category filter
-		var categoriesEl = wrap ? wrap.querySelector('.bbm-categories') : null;
-		var categoryToggle = wrap ? wrap.querySelector('.bbm-category-toggle') : null;
-		var categoryToggleLabel = wrap ? wrap.querySelector('.bbm-category-toggle-label') : null;
-		var categoryPanel = wrap ? wrap.querySelector('.bbm-category-panel') : null;
-		var chipsEl = wrap ? wrap.querySelector('.bbm-category-chips') : null;
-		var allCategories = data.categories || [];
+		// Category + destination filters
 		var selectedCategoryIds = [];
+		var selectedDestinationIds = [];
 
-		if (categoriesEl && categoryToggle && categoryPanel && chipsEl && allCategories.length > 0) {
-			categoriesEl.hidden = false;
-			renderCategoryPanel();
-			updateCategoryToggleLabel();
+		var categoryFilter = initFilter({
+			wrapperSelector: '.bbm-categories',
+			items: data.categories || [],
+			placeholder: data.i18n.categoryPlaceholder || 'Filter by category…',
+			removeLabel: data.i18n.removeCategory || 'Remove',
+			selectedRef: function () { return selectedCategoryIds; },
+			setSelected: function (next) { selectedCategoryIds = next; },
+		});
 
-			categoryToggle.addEventListener('click', function (e) {
+		var destinationFilter = initFilter({
+			wrapperSelector: '.bbm-destinations',
+			items: data.destinations || [],
+			placeholder: data.i18n.destinationPlaceholder || 'Filter by destination…',
+			removeLabel: data.i18n.removeDestination || 'Remove',
+			selectedRef: function () { return selectedDestinationIds; },
+			setSelected: function (next) { selectedDestinationIds = next; },
+		});
+
+		function initFilter(opts) {
+			var groupEl = wrap ? wrap.querySelector(opts.wrapperSelector) : null;
+			if (!groupEl || !opts.items.length) {
+				return { renderChips: function () {}, updateLabel: function () {} };
+			}
+			var toggle = groupEl.querySelector('.bbm-category-toggle');
+			var label = groupEl.querySelector('.bbm-category-toggle-label');
+			var panel = groupEl.querySelector('.bbm-category-panel');
+			var chips = groupEl.querySelector('.bbm-category-chips');
+			if (!toggle || !panel || !chips) {
+				return { renderChips: function () {}, updateLabel: function () {} };
+			}
+
+			groupEl.hidden = false;
+			renderPanel();
+			updateLabel();
+
+			toggle.addEventListener('click', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				var willOpen = categoryPanel.hidden;
-				categoryPanel.hidden = !willOpen;
-				categoryToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+				var willOpen = panel.hidden;
+				panel.hidden = !willOpen;
+				toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
 			});
 
-			categoryPanel.addEventListener('change', function (e) {
+			panel.addEventListener('change', function (e) {
 				var cb = e.target.closest('input[type="checkbox"]');
 				if (!cb) return;
 				var id = parseInt(cb.value, 10);
+				var sel = opts.selectedRef();
 				if (cb.checked) {
-					if (selectedCategoryIds.indexOf(id) === -1) selectedCategoryIds.push(id);
+					if (sel.indexOf(id) === -1) sel.push(id);
 				} else {
-					selectedCategoryIds = selectedCategoryIds.filter(function (cid) { return cid !== id; });
+					sel = sel.filter(function (cid) { return cid !== id; });
 				}
+				opts.setSelected(sel);
 				renderChips();
-				updateCategoryToggleLabel();
+				updateLabel();
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
-			chipsEl.addEventListener('click', function (e) {
+			chips.addEventListener('click', function (e) {
 				var btn = e.target.closest('.bbm-chip-remove');
 				if (!btn) return;
 				var id = parseInt(btn.getAttribute('data-id'), 10);
-				selectedCategoryIds = selectedCategoryIds.filter(function (cid) { return cid !== id; });
-				var cb = categoryPanel.querySelector('input[type="checkbox"][value="' + id + '"]');
+				var sel = opts.selectedRef().filter(function (cid) { return cid !== id; });
+				opts.setSelected(sel);
+				var cb = panel.querySelector('input[type="checkbox"][value="' + id + '"]');
 				if (cb) cb.checked = false;
 				renderChips();
-				updateCategoryToggleLabel();
+				updateLabel();
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
 			document.addEventListener('click', function (e) {
-				if (categoryPanel.hidden) return;
-				if (!categoriesEl.contains(e.target)) {
-					categoryPanel.hidden = true;
-					categoryToggle.setAttribute('aria-expanded', 'false');
+				if (panel.hidden) return;
+				if (!groupEl.contains(e.target)) {
+					panel.hidden = true;
+					toggle.setAttribute('aria-expanded', 'false');
 				}
 			});
-		}
 
-		function renderCategoryPanel() {
-			if (!categoryPanel) return;
-			categoryPanel.innerHTML = '';
-			allCategories.forEach(function (cat) {
-				var label = document.createElement('label');
-				label.className = 'bbm-category-option';
-				var cb = document.createElement('input');
-				cb.type = 'checkbox';
-				cb.value = String(cat.id);
-				cb.checked = selectedCategoryIds.indexOf(cat.id) !== -1;
-				var span = document.createElement('span');
-				span.textContent = cat.name;
-				label.appendChild(cb);
-				label.appendChild(span);
-				categoryPanel.appendChild(label);
-			});
-		}
+			function renderPanel() {
+				panel.innerHTML = '';
+				var sel = opts.selectedRef();
+				opts.items.forEach(function (it) {
+					var lbl = document.createElement('label');
+					lbl.className = 'bbm-category-option';
+					var cb = document.createElement('input');
+					cb.type = 'checkbox';
+					cb.value = String(it.id);
+					cb.checked = sel.indexOf(it.id) !== -1;
+					var span = document.createElement('span');
+					span.textContent = it.name;
+					lbl.appendChild(cb);
+					lbl.appendChild(span);
+					panel.appendChild(lbl);
+				});
+			}
 
-		function updateCategoryToggleLabel() {
-			if (!categoryToggleLabel) return;
-			var n = selectedCategoryIds.length;
-			var base = data.i18n.categoryPlaceholder || 'Filter by category…';
-			categoryToggleLabel.textContent = n > 0 ? base + ' (' + n + ')' : base;
-		}
+			function updateLabel() {
+				if (!label) return;
+				var n = opts.selectedRef().length;
+				label.textContent = n > 0 ? opts.placeholder + ' (' + n + ')' : opts.placeholder;
+			}
 
-		function renderChips() {
-			if (!chipsEl) return;
-			chipsEl.innerHTML = '';
-			selectedCategoryIds.forEach(function (id) {
-				var cat = allCategories.find(function (c) { return c.id === id; });
-				if (!cat) return;
-				var chip = document.createElement('span');
-				chip.className = 'bbm-chip';
-				chip.setAttribute('role', 'listitem');
-				chip.innerHTML = escapeHtml(cat.name)
-					+ ' <button type="button" class="bbm-chip-remove" aria-label="'
-					+ escapeAttr(data.i18n.removeCategory || 'Remove')
-					+ '" data-id="' + id + '">&times;</button>';
-				chipsEl.appendChild(chip);
-			});
+			function renderChips() {
+				chips.innerHTML = '';
+				opts.selectedRef().forEach(function (id) {
+					var it = opts.items.find(function (c) { return c.id === id; });
+					if (!it) return;
+					var chip = document.createElement('span');
+					chip.className = 'bbm-chip';
+					chip.setAttribute('role', 'listitem');
+					chip.innerHTML = escapeHtml(it.name)
+						+ ' <button type="button" class="bbm-chip-remove" aria-label="'
+						+ escapeAttr(opts.removeLabel)
+						+ '" data-id="' + id + '">&times;</button>';
+					chips.appendChild(chip);
+				});
+			}
+
+			return { renderChips: renderChips, updateLabel: updateLabel };
 		}
 
 		// ---- map abstraction ---------------------------------------------------
@@ -513,7 +541,9 @@
 
 		function runSearch(term) {
 			term = (term || '').trim();
-			var hasFilter = term !== '' || selectedCategoryIds.length > 0;
+			var hasFilter = term !== ''
+				|| selectedCategoryIds.length > 0
+				|| selectedDestinationIds.length > 0;
 			if (!hasFilter) {
 				showList();
 				resetMapToAll();
@@ -528,6 +558,9 @@
 				+ '&q=' + encodeURIComponent(term);
 			selectedCategoryIds.forEach(function (id) {
 				url += '&cats[]=' + encodeURIComponent(id);
+			});
+			selectedDestinationIds.forEach(function (id) {
+				url += '&dests[]=' + encodeURIComponent(id);
 			});
 
 			showLoader();

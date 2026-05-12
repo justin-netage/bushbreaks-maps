@@ -141,6 +141,28 @@ class Shortcode {
 			}
 		}
 
+		$destinations  = [];
+		$dest_tax_slug = (string) ( $opts['destination_taxonomy'] ?? '' );
+		if ( $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
+			$dest_terms = get_terms(
+				[
+					'taxonomy'   => $dest_tax_slug,
+					'hide_empty' => false,
+					'orderby'    => 'name',
+					'order'      => 'ASC',
+				]
+			);
+			if ( ! is_wp_error( $dest_terms ) ) {
+				foreach ( $dest_terms as $t ) {
+					$destinations[] = [
+						'id'   => (int) $t->term_id,
+						'slug' => $t->slug,
+						'name' => $t->name,
+					];
+				}
+			}
+		}
+
 		$api_key = trim( (string) ( $opts['google_maps_api_key'] ?? '' ) );
 		$provider = $api_key !== '' ? 'google' : 'leaflet';
 
@@ -178,17 +200,20 @@ class Shortcode {
 						'size' => (int) $opts['cluster_icon_size'],
 					],
 				],
-				'categories' => $categories,
+				'categories'   => $categories,
+				'destinations' => $destinations,
 				'i18n'      => [
-					'searchPlaceholder'    => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-					'listHeading'          => __( 'Lodges', 'bushbreaks-maps' ),
-					'noResults'            => __( 'No lodges match your search.', 'bushbreaks-maps' ),
-					'viewDetails'          => __( 'View details', 'bushbreaks-maps' ),
-					'searching'            => __( 'Searching lodges…', 'bushbreaks-maps' ),
-					'categoryPlaceholder'  => __( 'Filter by category…', 'bushbreaks-maps' ),
-					'removeCategory'       => __( 'Remove filter', 'bushbreaks-maps' ),
-					'resultsCountSingle'   => __( '1 lodge', 'bushbreaks-maps' ),
-					'resultsCountPlural'   => __( '%d lodges', 'bushbreaks-maps' ),
+					'searchPlaceholder'       => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
+					'listHeading'             => __( 'Lodges', 'bushbreaks-maps' ),
+					'noResults'               => __( 'No lodges match your search.', 'bushbreaks-maps' ),
+					'viewDetails'             => __( 'View details', 'bushbreaks-maps' ),
+					'searching'               => __( 'Searching lodges…', 'bushbreaks-maps' ),
+					'categoryPlaceholder'     => __( 'Filter by category…', 'bushbreaks-maps' ),
+					'removeCategory'          => __( 'Remove filter', 'bushbreaks-maps' ),
+					'destinationPlaceholder'  => __( 'Filter by destination…', 'bushbreaks-maps' ),
+					'removeDestination'       => __( 'Remove destination filter', 'bushbreaks-maps' ),
+					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
+					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
 				],
 			]
 		);
@@ -197,11 +222,12 @@ class Shortcode {
 		$template = BUSHBREAKS_MAPS_DIR . 'templates/map-display.php';
 		$height   = $atts['height'];
 		$i18n     = [
-			'searchPlaceholder'   => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-			'listHeading'         => __( 'Lodges', 'bushbreaks-maps' ),
-			'viewDetails'         => __( 'View details', 'bushbreaks-maps' ),
-			'searching'           => __( 'Searching lodges…', 'bushbreaks-maps' ),
-			'categoryPlaceholder' => __( 'Filter by category…', 'bushbreaks-maps' ),
+			'searchPlaceholder'      => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
+			'listHeading'            => __( 'Lodges', 'bushbreaks-maps' ),
+			'viewDetails'            => __( 'View details', 'bushbreaks-maps' ),
+			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
+			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
+			'destinationPlaceholder' => __( 'Filter by destination…', 'bushbreaks-maps' ),
 		];
 		include $template;
 		return (string) ob_get_clean();
