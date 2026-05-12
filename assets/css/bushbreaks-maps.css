@@ -62,12 +62,14 @@
 	outline: none;
 }
 
-.bbm-categories {
+.bbm-categories,
+.bbm-destinations {
 	flex: 0 0 auto;
-	margin-bottom: 12px;
+	margin-bottom: 14px;
 }
 
-.bbm-categories[hidden] {
+.bbm-categories[hidden],
+.bbm-destinations[hidden] {
 	display: none;
 }
 
@@ -267,46 +269,48 @@
 	flex-wrap: wrap;
 	gap: 4px;
 	margin-top: 8px;
+	margin-bottom: 4px;
 }
 
 .bbm-category-chips:empty {
 	display: none;
+	margin: 0;
 }
 
 .bbm-chip {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	padding: 4px 4px 4px 12px;
+	gap: 2px;
+	padding: 2px 2px 2px 8px;
 	background: #8AD000;
 	color: #ffffff;
 	border-radius: 999px;
-	font-size: 12px;
+	font-size: 10px;
 	font-weight: 600;
 	line-height: 1;
 	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
 }
 
 .bbm-chip-remove {
-	width: 18px;
-	height: 18px;
+	width: 14px;
+	height: 14px;
 	padding: 0;
 	margin: 0;
 	border: 0;
-	border-radius: 50%;
-	background: rgba(0, 0, 0, 0.18);
+	background: transparent;
 	color: #ffffff;
 	cursor: pointer;
-	font-size: 14px;
+	font-size: 13px;
 	line-height: 1;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	text-shadow: none;
+	opacity: 0.85;
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
 }
 
 .bbm-chip-remove:hover {
-	background: rgba(0, 0, 0, 0.32);
+	opacity: 1;
 }
 
 .bbm-filter-actions {
