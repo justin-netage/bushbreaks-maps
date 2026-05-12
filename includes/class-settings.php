@@ -342,49 +342,68 @@ class Settings {
 
 			<hr />
 
-			<h2><?php esc_html_e( 'Accommodations missing coordinates', 'bushbreaks-maps' ); ?></h2>
-			<?php $missing = Repository::find_missing_coords(); ?>
-			<?php if ( empty( $missing ) ) : ?>
-				<p><?php esc_html_e( 'All accommodations have usable coordinates.', 'bushbreaks-maps' ); ?></p>
-			<?php else : ?>
-				<p>
-					<?php
-					printf(
-						/* translators: %d: number of accommodations missing coordinates */
-						esc_html( _n( '%d accommodation has no usable lat/lng and is hidden from the map.', '%d accommodations have no usable lat/lng and are hidden from the map.', count( $missing ), 'bushbreaks-maps' ) ),
-						(int) count( $missing )
-					);
-					?>
-				</p>
-				<table class="widefat striped" style="max-width:720px;">
-					<thead>
-						<tr>
-							<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
-							<th><?php esc_html_e( 'Last sync status', 'bushbreaks-maps' ); ?></th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php foreach ( $missing as $m ) : ?>
-							<tr>
-								<td><?php echo esc_html( $m['title'] ); ?></td>
-								<td><code><?php echo esc_html( $m['status'] !== '' ? $m['status'] : 'never processed' ); ?></code></td>
-								<td>
-									<?php if ( $m['edit_link'] ) : ?>
-										<a href="<?php echo esc_url( $m['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
-									<?php endif; ?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					</tbody>
-				</table>
-			<?php endif; ?>
-
-			<hr />
-
 			<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
 			<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
 			<?php $this->render_category_order_list( $opts ); ?>
+
+			<hr />
+
+			<?php
+			$missing       = Repository::find_missing_coords();
+			$missing_count = count( $missing );
+			?>
+			<details class="bbm-collapsible">
+				<summary>
+					<?php
+					if ( $missing_count === 0 ) {
+						esc_html_e( 'Accommodations missing coordinates (0)', 'bushbreaks-maps' );
+					} else {
+						printf(
+							/* translators: %d: number of accommodations missing coordinates */
+							esc_html( _n( 'Accommodations missing coordinates (%d)', 'Accommodations missing coordinates (%d)', $missing_count, 'bushbreaks-maps' ) ),
+							(int) $missing_count
+						);
+					}
+					?>
+				</summary>
+				<div class="bbm-collapsible-body">
+					<?php if ( $missing_count === 0 ) : ?>
+						<p><?php esc_html_e( 'All accommodations have usable coordinates.', 'bushbreaks-maps' ); ?></p>
+					<?php else : ?>
+						<p>
+							<?php
+							printf(
+								/* translators: %d: number of accommodations missing coordinates */
+								esc_html( _n( '%d accommodation has no usable lat/lng and is hidden from the map.', '%d accommodations have no usable lat/lng and are hidden from the map.', $missing_count, 'bushbreaks-maps' ) ),
+								(int) $missing_count
+							);
+							?>
+						</p>
+						<table class="widefat striped" style="max-width:720px;">
+							<thead>
+								<tr>
+									<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
+									<th><?php esc_html_e( 'Last sync status', 'bushbreaks-maps' ); ?></th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $missing as $m ) : ?>
+									<tr>
+										<td><?php echo esc_html( $m['title'] ); ?></td>
+										<td><code><?php echo esc_html( $m['status'] !== '' ? $m['status'] : 'never processed' ); ?></code></td>
+										<td>
+											<?php if ( $m['edit_link'] ) : ?>
+												<a href="<?php echo esc_url( $m['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
+											<?php endif; ?>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					<?php endif; ?>
+				</div>
+			</details>
 		</div>
 		<?php
 	}
@@ -416,6 +435,11 @@ class Settings {
 			.bbm-sort-handle:active { cursor: grabbing; }
 			.bbm-sort-label { font-size: 14px; }
 			.bbm-sort-placeholder { background: #f0f7e0; border: 1px dashed #8AD000; border-radius: 4px; margin: 0 0 4px; }
+			.bbm-collapsible > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+			.bbm-collapsible > summary::-webkit-details-marker { display: none; }
+			.bbm-collapsible > summary::before { content: "\25B8"; display: inline-block; color: #8c8f94; transition: transform 0.15s ease; }
+			.bbm-collapsible[open] > summary::before { transform: rotate(90deg); }
+			.bbm-collapsible-body { padding: 8px 0 0; }
 		</style>
 		<ul id="bbm-category-order-list" class="bbm-sortable">
 			<?php foreach ( $terms as $t ) : ?>
