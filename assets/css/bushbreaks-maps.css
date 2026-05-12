@@ -374,8 +374,8 @@
 }
 
 .bbm-price-discount {
-	background: #ffe4cf;
-	color: #b54708;
+	background: rgba(138, 208, 0, 0.18);
+	color: #3a5b00;
 	font-weight: 600;
 	font-size: 11px;
 	padding: 1px 6px;
