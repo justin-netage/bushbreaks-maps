@@ -1,5 +1,5 @@
 === Bushbreaks Maps ===
-Contributors: bushbreaks
+Contributors: netage
 Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5

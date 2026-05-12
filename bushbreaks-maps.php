@@ -3,7 +3,7 @@
  * Plugin Name: Bushbreaks Maps
  * Description: Displays a map of lodge accommodations (from a Pods custom post type) with search and a featured list.
  * Version:     0.7.8
- * Author:      Bushbreaks
+ * Author:      Net Age
  * License:     GPL-2.0-or-later
  * Text Domain: bushbreaks-maps
  */
