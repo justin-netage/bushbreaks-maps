@@ -145,9 +145,12 @@
 				return { renderChips: function () {}, updateLabel: function () {} };
 			}
 
+			var parentBadges = []; // [{ node, el }]
+
 			groupEl.hidden = false;
 			renderPanel();
 			updateLabel();
+			updateBadges();
 
 			toggle.addEventListener('click', function (e) {
 				e.preventDefault();
@@ -170,6 +173,7 @@
 				opts.setSelected(sel);
 				renderChips();
 				updateLabel();
+				updateBadges();
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
@@ -183,6 +187,7 @@
 				if (cb) cb.checked = false;
 				renderChips();
 				updateLabel();
+				updateBadges();
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
@@ -196,6 +201,7 @@
 
 			function renderPanel() {
 				panel.innerHTML = '';
+				parentBadges = [];
 				var isTreeMode = opts.items.some(function (i) { return i.children && i.children.length; });
 				opts.items.forEach(function (it) {
 					panel.appendChild(buildTreeNode(it, isTreeMode));
@@ -231,10 +237,20 @@
 				cb.type = 'checkbox';
 				cb.value = String(node.id);
 				cb.checked = opts.selectedRef().indexOf(node.id) !== -1;
-				var span = document.createElement('span');
-				span.textContent = node.name;
+				var nameSpan = document.createElement('span');
+				nameSpan.textContent = node.name;
 				lbl.appendChild(cb);
-				lbl.appendChild(span);
+				lbl.appendChild(nameSpan);
+
+				if (hasChildren) {
+					var badge = document.createElement('span');
+					badge.className = 'bbm-tree-badge';
+					badge.hidden = true;
+					badge.setAttribute('aria-hidden', 'true');
+					lbl.appendChild(badge);
+					parentBadges.push({ node: node, el: badge });
+				}
+
 				row.appendChild(lbl);
 				wrapper.appendChild(row);
 
@@ -259,6 +275,30 @@
 				return wrapper;
 			}
 
+			function countSelectedDescendants(node, sel) {
+				if (!node.children || !node.children.length) return 0;
+				var count = 0;
+				node.children.forEach(function (c) {
+					if (sel.indexOf(c.id) !== -1) count++;
+					count += countSelectedDescendants(c, sel);
+				});
+				return count;
+			}
+
+			function updateBadges() {
+				var sel = opts.selectedRef();
+				parentBadges.forEach(function (pb) {
+					var n = countSelectedDescendants(pb.node, sel);
+					if (n > 0) {
+						pb.el.textContent = String(n);
+						pb.el.hidden = false;
+					} else {
+						pb.el.textContent = '';
+						pb.el.hidden = true;
+					}
+				});
+			}
+
 			function updateLabel() {
 				if (!label) return;
 				var n = opts.selectedRef().length;
@@ -268,7 +308,7 @@
 			function renderChips() {
 				chips.innerHTML = '';
 				opts.selectedRef().forEach(function (id) {
-					var it = opts.items.find(function (c) { return c.id === id; });
+					var it = findItemById(opts.items, id);
 					if (!it) return;
 					var chip = document.createElement('span');
 					chip.className = 'bbm-chip';
@@ -279,6 +319,17 @@
 						+ '" data-id="' + id + '">&times;</button>';
 					chips.appendChild(chip);
 				});
+			}
+
+			function findItemById(items, id) {
+				for (var i = 0; i < items.length; i++) {
+					if (items[i].id === id) return items[i];
+					if (items[i].children && items[i].children.length) {
+						var found = findItemById(items[i].children, id);
+						if (found) return found;
+					}
+				}
+				return null;
 			}
 
 			return { renderChips: renderChips, updateLabel: updateLabel };
