@@ -120,16 +120,27 @@ class Shortcode {
 			]
 		);
 
+		$visible_ids = array_map(
+			function ( $loc ) {
+				return (int) $loc['id'];
+			},
+			$all_locations
+		);
+
 		$categories  = [];
 		$cat_tax_slug = (string) ( $opts['category_taxonomy'] ?? '' );
 		if ( $cat_tax_slug !== '' && taxonomy_exists( $cat_tax_slug ) ) {
 			$terms = get_terms(
 				[
 					'taxonomy'   => $cat_tax_slug,
-					'hide_empty' => true,
+					'hide_empty' => false,
 				]
 			);
 			if ( ! is_wp_error( $terms ) ) {
+				$cat_counts = Repository::visible_term_counts( $cat_tax_slug, $visible_ids );
+				$terms = array_values( array_filter( $terms, function ( $t ) use ( $cat_counts ) {
+					return ( $cat_counts[ (int) $t->term_id ] ?? 0 ) > 0;
+				} ) );
 				$terms = Settings::sort_terms_by_order( $terms );
 				foreach ( $terms as $t ) {
 					$categories[] = [
@@ -148,13 +159,13 @@ class Shortcode {
 				[
 					'taxonomy'   => $dest_tax_slug,
 					'hide_empty' => false,
-					'pad_counts' => true,
 				]
 			);
 			if ( ! is_wp_error( $dest_terms ) && ! empty( $dest_terms ) ) {
-				// Drop terms whose padded count (own + descendants) is zero
-				$dest_terms = array_values( array_filter( $dest_terms, function ( $t ) {
-					return (int) $t->count > 0;
+				$dest_counts    = Repository::visible_term_counts( $dest_tax_slug, $visible_ids );
+				$subtree_counts = Repository::pad_subtree_counts( $dest_terms, $dest_counts );
+				$dest_terms = array_values( array_filter( $dest_terms, function ( $t ) use ( $subtree_counts ) {
+					return ( $subtree_counts[ (int) $t->term_id ] ?? 0 ) > 0;
 				} ) );
 
 				$by_parent = [];
