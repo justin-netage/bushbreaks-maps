@@ -254,7 +254,6 @@
 						var isOpen = !childContainer.hidden;
 						childContainer.hidden = isOpen;
 						toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-						toggle.textContent = isOpen ? '▸' : '▾';
 					});
 				}
 
