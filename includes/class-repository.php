@@ -220,6 +220,71 @@ class Repository {
 	}
 
 	/**
+	 * Map of term_id => direct count, restricted to the supplied post IDs.
+	 * Used to filter filter dropdowns so terms whose only accommodations are
+	 * missing coordinates (i.e. hidden from the map) don't appear either.
+	 */
+	public static function visible_term_counts( string $taxonomy, array $visible_post_ids ): array {
+		if ( $taxonomy === '' || empty( $visible_post_ids ) ) {
+			return [];
+		}
+		global $wpdb;
+
+		$ids = array_map( 'intval', $visible_post_ids );
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		$params = array_merge( [ $taxonomy ], $ids );
+
+		$sql = $wpdb->prepare(
+			"SELECT tt.term_id, COUNT(DISTINCT tr.object_id) AS cnt
+			 FROM {$wpdb->term_relationships} tr
+			 INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+			 WHERE tt.taxonomy = %s
+			   AND tr.object_id IN ($placeholders)
+			 GROUP BY tt.term_id",
+			$params
+		);
+
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		$counts = [];
+		foreach ( (array) $rows as $row ) {
+			$counts[ (int) $row['term_id'] ] = (int) $row['cnt'];
+		}
+		return $counts;
+	}
+
+	/**
+	 * Roll direct term counts up the parent chain so a parent's effective
+	 * count = own + sum(descendants). Used to keep provinces visible when
+	 * any of their reserves has accommodations on the map.
+	 */
+	public static function pad_subtree_counts( array $terms, array $direct_counts ): array {
+		$by_parent = [];
+		foreach ( $terms as $t ) {
+			$pid = (int) ( is_object( $t ) ? ( $t->parent ?? 0 ) : ( $t['parent'] ?? 0 ) );
+			$by_parent[ $pid ][] = $t;
+		}
+
+		$padded = [];
+		$compute = function ( $term_id ) use ( &$compute, $by_parent, $direct_counts, &$padded ) {
+			if ( isset( $padded[ $term_id ] ) ) {
+				return $padded[ $term_id ];
+			}
+			$sum = (int) ( $direct_counts[ $term_id ] ?? 0 );
+			foreach ( $by_parent[ $term_id ] ?? [] as $child ) {
+				$sum += $compute( (int) ( is_object( $child ) ? $child->term_id : $child['id'] ) );
+			}
+			$padded[ $term_id ] = $sum;
+			return $sum;
+		};
+
+		foreach ( $terms as $t ) {
+			$compute( (int) ( is_object( $t ) ? $t->term_id : $t['id'] ) );
+		}
+
+		return $padded;
+	}
+
+	/**
 	 * List accommodations that have no usable latitude/longitude.
 	 * Returns id, title, edit link, and the last sync status.
 	 */
