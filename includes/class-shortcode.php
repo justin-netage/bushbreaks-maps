@@ -126,7 +126,7 @@ class Shortcode {
 			$terms = get_terms(
 				[
 					'taxonomy'   => $cat_tax_slug,
-					'hide_empty' => false,
+					'hide_empty' => true,
 				]
 			);
 			if ( ! is_wp_error( $terms ) ) {
@@ -148,9 +148,15 @@ class Shortcode {
 				[
 					'taxonomy'   => $dest_tax_slug,
 					'hide_empty' => false,
+					'pad_counts' => true,
 				]
 			);
 			if ( ! is_wp_error( $dest_terms ) && ! empty( $dest_terms ) ) {
+				// Drop terms whose padded count (own + descendants) is zero
+				$dest_terms = array_values( array_filter( $dest_terms, function ( $t ) {
+					return (int) $t->count > 0;
+				} ) );
+
 				$by_parent = [];
 				foreach ( $dest_terms as $t ) {
 					$pid = (int) ( $t->parent ?? 0 );
