@@ -148,18 +148,39 @@ class Shortcode {
 				[
 					'taxonomy'   => $dest_tax_slug,
 					'hide_empty' => false,
-					'orderby'    => 'name',
-					'order'      => 'ASC',
 				]
 			);
-			if ( ! is_wp_error( $dest_terms ) ) {
+			if ( ! is_wp_error( $dest_terms ) && ! empty( $dest_terms ) ) {
+				$by_parent = [];
 				foreach ( $dest_terms as $t ) {
-					$destinations[] = [
-						'id'   => (int) $t->term_id,
-						'slug' => $t->slug,
-						'name' => $t->name,
-					];
+					$pid = (int) ( $t->parent ?? 0 );
+					$by_parent[ $pid ][] = $t;
 				}
+				foreach ( $by_parent as $k => $list ) {
+					usort(
+						$list,
+						function ( $a, $b ) {
+							return strcmp( $a->name, $b->name );
+						}
+					);
+					$by_parent[ $k ] = $list;
+				}
+
+				$walker = function ( $parent_id, $depth ) use ( &$walker, &$by_parent, &$destinations ) {
+					if ( empty( $by_parent[ $parent_id ] ) ) {
+						return;
+					}
+					foreach ( $by_parent[ $parent_id ] as $t ) {
+						$destinations[] = [
+							'id'    => (int) $t->term_id,
+							'slug'  => $t->slug,
+							'name'  => $t->name,
+							'depth' => (int) $depth,
+						];
+						$walker( (int) $t->term_id, $depth + 1 );
+					}
+				};
+				$walker( 0, 0 );
 			}
 		}
 

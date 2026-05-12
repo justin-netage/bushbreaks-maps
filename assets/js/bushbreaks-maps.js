@@ -199,7 +199,11 @@
 				var sel = opts.selectedRef();
 				opts.items.forEach(function (it) {
 					var lbl = document.createElement('label');
-					lbl.className = 'bbm-category-option';
+					var depth = (it.depth && it.depth > 0) ? it.depth : 0;
+					lbl.className = 'bbm-category-option' + (depth > 0 ? ' bbm-category-option--child' : '');
+					if (depth > 0) {
+						lbl.style.paddingLeft = (10 + 18 * depth) + 'px';
+					}
 					var cb = document.createElement('input');
 					cb.type = 'checkbox';
 					cb.value = String(it.id);
