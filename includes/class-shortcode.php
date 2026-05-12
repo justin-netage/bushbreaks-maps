@@ -123,22 +123,14 @@ class Shortcode {
 		$categories  = [];
 		$cat_tax_slug = (string) ( $opts['category_taxonomy'] ?? '' );
 		if ( $cat_tax_slug !== '' && taxonomy_exists( $cat_tax_slug ) ) {
-			$order_meta = (string) ( $opts['category_order_meta'] ?? '' );
-			$term_args  = [
-				'taxonomy'   => $cat_tax_slug,
-				'hide_empty' => false,
-			];
-			if ( $order_meta !== '' ) {
-				$term_args['meta_key'] = $order_meta;
-				$term_args['orderby']  = 'meta_value_num';
-				$term_args['order']    = 'ASC';
-			} else {
-				$term_args['orderby'] = 'name';
-				$term_args['order']   = 'ASC';
-			}
-
-			$terms = get_terms( $term_args );
+			$terms = get_terms(
+				[
+					'taxonomy'   => $cat_tax_slug,
+					'hide_empty' => false,
+				]
+			);
 			if ( ! is_wp_error( $terms ) ) {
+				$terms = Settings::sort_terms_by_order( $terms );
 				foreach ( $terms as $t ) {
 					$categories[] = [
 						'id'   => (int) $t->term_id,
