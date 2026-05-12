@@ -240,7 +240,7 @@ class Repository {
 
 		return [
 			'id'        => $post->ID,
-			'title'     => get_the_title( $post ),
+			'title'     => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 			'permalink' => get_permalink( $post ),
 			'lat'       => $lat,
 			'lng'       => $lng,
@@ -268,6 +268,7 @@ class Repository {
 		$normal  = self::parse_amount( $normal_raw );
 		$special = self::parse_amount( $special_raw );
 		$unit    = is_scalar( $desc_raw ) ? trim( (string) $desc_raw ) : '';
+		$unit    = self::map_price_unit( $unit );
 
 		$discount = null;
 		if ( $normal !== null && $special !== null && $special < $normal ) {
@@ -300,6 +301,24 @@ class Repository {
 		}
 		$val = (float) $clean;
 		return $val > 0 ? $val : null;
+	}
+
+	/**
+	 * Display-friendly mapping for price_description abbreviations.
+	 * Filterable so customers can extend without editing the plugin.
+	 */
+	private static function map_price_unit( string $raw ): string {
+		if ( $raw === '' ) {
+			return '';
+		}
+		$map = apply_filters(
+			'bushbreaks_maps_price_unit_map',
+			[
+				'ppn' => 'pppn sharing',
+			]
+		);
+		$key = strtolower( $raw );
+		return isset( $map[ $key ] ) ? (string) $map[ $key ] : $raw;
 	}
 
 	private static function format_money( float $amount, string $currency ): string {
