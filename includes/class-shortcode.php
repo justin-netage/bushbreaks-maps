@@ -157,13 +157,7 @@ class Shortcode {
 					$by_parent[ $pid ][] = $t;
 				}
 				foreach ( $by_parent as $k => $list ) {
-					usort(
-						$list,
-						function ( $a, $b ) {
-							return strcmp( $a->name, $b->name );
-						}
-					);
-					$by_parent[ $k ] = $list;
+					$by_parent[ $k ] = Settings::sort_terms_by_order( $list, '_bbm_destination_order' );
 				}
 
 				$walker = function ( $parent_id ) use ( &$walker, &$by_parent ) {

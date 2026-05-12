@@ -217,7 +217,6 @@
 					toggle.className = 'bbm-tree-toggle';
 					toggle.setAttribute('aria-expanded', 'false');
 					toggle.setAttribute('aria-label', 'Expand');
-					toggle.textContent = '▸'; // right triangle
 					row.appendChild(toggle);
 				} else if (isTreeMode) {
 					var spacer = document.createElement('span');
