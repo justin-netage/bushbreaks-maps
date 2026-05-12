@@ -332,7 +332,37 @@
 				return null;
 			}
 
-			return { renderChips: renderChips, updateLabel: updateLabel };
+			return {
+				renderChips: renderChips,
+				updateLabel: updateLabel,
+				reset: function () {
+					opts.setSelected([]);
+					renderPanel();
+					renderChips();
+					updateLabel();
+					updateBadges();
+				},
+			};
+		}
+
+		var clearAllBtn = wrap ? wrap.querySelector('.bbm-clear-all') : null;
+		function updateClearAllVisibility() {
+			if (!clearAllBtn) return;
+			var hasFilter = (searchInput && searchInput.value.trim() !== '')
+				|| selectedCategoryIds.length > 0
+				|| selectedDestinationIds.length > 0;
+			clearAllBtn.hidden = !hasFilter;
+		}
+		if (clearAllBtn) {
+			clearAllBtn.addEventListener('click', function (e) {
+				e.preventDefault();
+				if (searchInput) searchInput.value = '';
+				categoryFilter.reset();
+				destinationFilter.reset();
+				clearTimeout(searchTimer);
+				runSearch('');
+				if (searchInput) searchInput.focus();
+			});
 		}
 
 		// ---- map abstraction ---------------------------------------------------
@@ -642,6 +672,7 @@
 			var hasFilter = term !== ''
 				|| selectedCategoryIds.length > 0
 				|| selectedDestinationIds.length > 0;
+			updateClearAllVisibility();
 			if (!hasFilter) {
 				showList();
 				resetMapToAll();

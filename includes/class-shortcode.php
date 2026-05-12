@@ -251,6 +251,7 @@ class Shortcode {
 					'removeDestination'       => __( 'Remove region filter', 'bushbreaks-maps' ),
 					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
 					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
+					'clearAll'                => __( 'Clear all', 'bushbreaks-maps' ),
 				],
 			]
 		);
@@ -265,6 +266,7 @@ class Shortcode {
 			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
 			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
 			'destinationPlaceholder' => __( 'Filter by Region…', 'bushbreaks-maps' ),
+			'clearAll'               => __( 'Clear all', 'bushbreaks-maps' ),
 		];
 		include $template;
 		return (string) ob_get_clean();
