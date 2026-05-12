@@ -25,6 +25,16 @@ require_once BUSHBREAKS_MAPS_DIR . 'includes/class-shortcode.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-ajax.php';
 require_once BUSHBREAKS_MAPS_DIR . 'includes/class-plugin.php';
 
+require_once BUSHBREAKS_MAPS_DIR . 'vendor/plugin-update-checker/plugin-update-checker.php';
+
+$bushbreaks_maps_update_checker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+	'https://github.com/justin-netage/bushbreaks-maps/',
+	BUSHBREAKS_MAPS_FILE,
+	'bushbreaks-maps'
+);
+$bushbreaks_maps_update_checker->setBranch( 'main' );
+$bushbreaks_maps_update_checker->getVcsApi()->enableReleaseAssets();
+
 add_action( 'plugins_loaded', static function () {
 	Bushbreaks_Maps\Plugin::instance()->init();
 } );
