@@ -19,7 +19,6 @@ class Settings {
 			'location_field' => 'location',
 			'destination_taxonomy'    => 'destination',
 			'category_taxonomy'       => 'popular_request',
-			'category_order_meta'     => '',
 			'image_field'         => 'banner',
 			'normal_price_field'      => 'normal_price',
 			'special_price_field'     => 'special_price',
@@ -59,6 +58,7 @@ class Settings {
 	public function register(): void {
 		add_action( 'admin_menu', [ $this, 'add_menu' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
+		add_action( 'wp_ajax_bushbreaks_maps_reorder_categories', [ $this, 'ajax_reorder_categories' ] );
 	}
 
 	public function add_menu(): void {
@@ -75,10 +75,11 @@ class Settings {
 				return;
 			}
 			wp_enqueue_media();
+			wp_enqueue_script( 'jquery-ui-sortable' );
 			wp_enqueue_script(
 				'bushbreaks-maps-admin',
 				BUSHBREAKS_MAPS_URL . 'assets/js/bbm-admin.js',
-				[ 'jquery' ],
+				[ 'jquery', 'jquery-ui-sortable' ],
 				BUSHBREAKS_MAPS_VERSION,
 				true
 			);
@@ -86,14 +87,18 @@ class Settings {
 				'bushbreaks-maps-admin',
 				'BushbreaksMapsAdmin',
 				[
-					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-					'nonce'   => wp_create_nonce( 'bushbreaks_maps_backfill' ),
+					'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+					'nonce'        => wp_create_nonce( 'bushbreaks_maps_backfill' ),
+					'reorderNonce' => wp_create_nonce( 'bushbreaks_maps_reorder_categories' ),
 					'i18n'    => [
 						'starting'    => __( 'Starting…', 'bushbreaks-maps' ),
 						'progress'    => __( 'Processed %1$s of %2$s…', 'bushbreaks-maps' ),
 						'done'        => __( 'Done. Processed %1$s of %2$s.', 'bushbreaks-maps' ),
 						'error'       => __( 'Error during backfill.', 'bushbreaks-maps' ),
 						'networkError'=> __( 'Network error.', 'bushbreaks-maps' ),
+						'saving'      => __( 'Saving…', 'bushbreaks-maps' ),
+						'saved'       => __( 'Order saved.', 'bushbreaks-maps' ),
+						'saveFailed'  => __( 'Save failed.', 'bushbreaks-maps' ),
 					],
 				]
 			);
@@ -118,7 +123,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'category_order_meta', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -209,13 +214,6 @@ class Settings {
 						<td>
 							<input id="bbm_category_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[category_taxonomy]" type="text" value="<?php echo esc_attr( $opts['category_taxonomy'] ); ?>" class="regular-text">
 							<p class="description"><?php esc_html_e( 'Taxonomy whose terms appear in the front-end filter dropdown beneath the search bar (e.g. popular_request).', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_category_order_meta"><?php esc_html_e( 'Category order meta key', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_category_order_meta" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[category_order_meta]" type="text" value="<?php echo esc_attr( $opts['category_order_meta'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Term meta key (numeric) used to sort the filter dropdown. Add a numeric field to your taxonomy terms via Pods (e.g. "position") and put the slug here. Leave empty to sort alphabetically.', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -381,7 +379,95 @@ class Settings {
 					</tbody>
 				</table>
 			<?php endif; ?>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
+			<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
+			<?php $this->render_category_order_list( $opts ); ?>
 		</div>
 		<?php
+	}
+
+	private function render_category_order_list( array $opts ): void {
+		$tax_slug = (string) ( $opts['category_taxonomy'] ?? '' );
+		if ( $tax_slug === '' || ! taxonomy_exists( $tax_slug ) ) {
+			echo '<p><em>' . esc_html__( 'Set the Category taxonomy slug above before configuring order.', 'bushbreaks-maps' ) . '</em></p>';
+			return;
+		}
+
+		$terms = get_terms(
+			[
+				'taxonomy'   => $tax_slug,
+				'hide_empty' => false,
+			]
+		);
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			echo '<p><em>' . esc_html__( 'No categories found in this taxonomy.', 'bushbreaks-maps' ) . '</em></p>';
+			return;
+		}
+
+		$terms = self::sort_terms_by_order( $terms );
+		?>
+		<style>
+			.bbm-sortable { list-style: none; margin: 8px 0; padding: 0; max-width: 480px; }
+			.bbm-sort-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 0 0 4px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; }
+			.bbm-sort-handle { cursor: grab; color: #8c8f94; font-size: 18px; line-height: 1; padding: 0 4px; user-select: none; }
+			.bbm-sort-handle:active { cursor: grabbing; }
+			.bbm-sort-label { font-size: 14px; }
+			.bbm-sort-placeholder { background: #f0f7e0; border: 1px dashed #8AD000; border-radius: 4px; margin: 0 0 4px; }
+		</style>
+		<ul id="bbm-category-order-list" class="bbm-sortable">
+			<?php foreach ( $terms as $t ) : ?>
+				<li class="bbm-sort-item" data-id="<?php echo esc_attr( (string) $t->term_id ); ?>">
+					<span class="bbm-sort-handle" aria-hidden="true">&#8801;</span>
+					<span class="bbm-sort-label"><?php echo esc_html( $t->name ); ?></span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p><span id="bbm-order-status" class="description" style="margin-left:0;"></span></p>
+		<?php
+	}
+
+	public static function sort_terms_by_order( array $terms ): array {
+		usort( $terms, function ( $a, $b ) {
+			$id_a = is_object( $a ) ? (int) $a->term_id : (int) ( $a['id'] ?? 0 );
+			$id_b = is_object( $b ) ? (int) $b->term_id : (int) ( $b['id'] ?? 0 );
+			$oa   = (int) get_term_meta( $id_a, '_bbm_category_order', true );
+			$ob   = (int) get_term_meta( $id_b, '_bbm_category_order', true );
+
+			if ( $oa === $ob ) {
+				$name_a = is_object( $a ) ? $a->name : (string) ( $a['name'] ?? '' );
+				$name_b = is_object( $b ) ? $b->name : (string) ( $b['name'] ?? '' );
+				return strcmp( $name_a, $name_b );
+			}
+			if ( $oa === 0 ) {
+				return 1;
+			}
+			if ( $ob === 0 ) {
+				return -1;
+			}
+			return $oa <=> $ob;
+		} );
+		return $terms;
+	}
+
+	public function ajax_reorder_categories(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'forbidden' ], 403 );
+		}
+		check_ajax_referer( 'bushbreaks_maps_reorder_categories', 'nonce' );
+
+		$order    = isset( $_POST['order'] ) && is_array( $_POST['order'] ) ? wp_unslash( $_POST['order'] ) : [];
+		$position = 1;
+		foreach ( $order as $term_id ) {
+			$tid = (int) $term_id;
+			if ( $tid > 0 ) {
+				update_term_meta( $tid, '_bbm_category_order', $position );
+				$position++;
+			}
+		}
+
+		wp_send_json_success();
 	}
 }

@@ -28,13 +28,51 @@
 		});
 	}
 
-	var btn = document.getElementById('bbm-backfill');
-	var status = document.getElementById('bbm-backfill-status');
-	if (!btn || !status || typeof window.BushbreaksMapsAdmin === 'undefined') {
-		return;
+	var cfg = window.BushbreaksMapsAdmin || null;
+
+	// Drag-and-drop category ordering
+	if (cfg && typeof window.jQuery !== 'undefined' && typeof jQuery.fn.sortable === 'function') {
+		var $list = jQuery('#bbm-category-order-list');
+		if ($list.length) {
+			var $status = jQuery('#bbm-order-status');
+			$list.sortable({
+				items: '> li',
+				handle: '.bbm-sort-handle',
+				axis: 'y',
+				cursor: 'grabbing',
+				placeholder: 'bbm-sort-placeholder',
+				forcePlaceholderSize: true,
+				update: function () {
+					var order = $list.children('li').map(function () {
+						return jQuery(this).data('id');
+					}).get();
+
+					if (cfg.i18n && cfg.i18n.saving) $status.text(cfg.i18n.saving);
+
+					jQuery.post(cfg.ajaxUrl, {
+						action: 'bushbreaks_maps_reorder_categories',
+						nonce: cfg.reorderNonce,
+						order: order,
+					}).done(function (json) {
+						if (json && json.success) {
+							$status.text(cfg.i18n && cfg.i18n.saved ? cfg.i18n.saved : 'Saved');
+							setTimeout(function () { $status.text(''); }, 1500);
+						} else {
+							$status.text(cfg.i18n && cfg.i18n.saveFailed ? cfg.i18n.saveFailed : 'Save failed');
+						}
+					}).fail(function () {
+						$status.text(cfg.i18n && cfg.i18n.saveFailed ? cfg.i18n.saveFailed : 'Save failed');
+					});
+				},
+			}).disableSelection();
+		}
 	}
 
-	var cfg = window.BushbreaksMapsAdmin;
+	var btn = document.getElementById('bbm-backfill');
+	var statusEl = document.getElementById('bbm-backfill-status');
+	if (!btn || !statusEl || !cfg) {
+		return;
+	}
 
 	function format(template, a, b) {
 		return template.replace('%1$s', a).replace('%2$s', b);
@@ -43,7 +81,7 @@
 	btn.addEventListener('click', function (e) {
 		e.preventDefault();
 		btn.disabled = true;
-		status.textContent = cfg.i18n.starting;
+		statusEl.textContent = cfg.i18n.starting;
 		runBatch(0);
 	});
 
@@ -61,21 +99,21 @@
 			.then(function (r) { return r.json(); })
 			.then(function (json) {
 				if (!json || !json.success) {
-					status.textContent = cfg.i18n.error;
+					statusEl.textContent = cfg.i18n.error;
 					btn.disabled = false;
 					return;
 				}
 				var d = json.data;
 				if (d.done) {
-					status.textContent = format(cfg.i18n.done, d.next, d.total);
+					statusEl.textContent = format(cfg.i18n.done, d.next, d.total);
 					btn.disabled = false;
 				} else {
-					status.textContent = format(cfg.i18n.progress, d.next, d.total);
+					statusEl.textContent = format(cfg.i18n.progress, d.next, d.total);
 					runBatch(d.next);
 				}
 			})
 			.catch(function () {
-				status.textContent = cfg.i18n.networkError;
+				statusEl.textContent = cfg.i18n.networkError;
 				btn.disabled = false;
 			});
 	}
