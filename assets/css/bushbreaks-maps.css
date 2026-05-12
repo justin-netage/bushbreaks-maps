@@ -129,21 +129,84 @@
 	background: #f3f5f7;
 }
 
-.bbm-category-option:not(.bbm-category-option--child) {
-	font-weight: 600;
-}
-
-.bbm-category-option--child {
-	font-size: 12px;
-	color: #4a5560;
-}
-
 .bbm-category-option input[type="checkbox"] {
 	accent-color: #8AD000;
 	width: 16px;
 	height: 16px;
 	margin: 0;
 	flex: 0 0 auto;
+}
+
+.bbm-tree-node {
+	display: block;
+}
+
+.bbm-tree-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 6px;
+	border-radius: 4px;
+}
+
+.bbm-tree-row:hover {
+	background: #f3f5f7;
+}
+
+.bbm-tree-toggle {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #6a7280;
+	cursor: pointer;
+	font-size: 11px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	line-height: 1;
+}
+
+.bbm-tree-toggle:hover {
+	background: #e8ecf0;
+}
+
+.bbm-tree-spacer {
+	display: inline-block;
+	width: 22px;
+	height: 22px;
+	flex: 0 0 auto;
+}
+
+.bbm-tree-label {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 13px;
+	color: inherit;
+	margin: 0;
+	user-select: none;
+}
+
+.bbm-tree-label input[type="checkbox"] {
+	accent-color: #8AD000;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	flex: 0 0 auto;
+}
+
+.bbm-tree-children {
+	padding-left: 22px;
+}
+
+.bbm-tree-children[hidden] {
+	display: none;
 }
 
 .bbm-category-chips {

@@ -196,24 +196,69 @@
 
 			function renderPanel() {
 				panel.innerHTML = '';
-				var sel = opts.selectedRef();
+				var isTreeMode = opts.items.some(function (i) { return i.children && i.children.length; });
 				opts.items.forEach(function (it) {
-					var lbl = document.createElement('label');
-					var depth = (it.depth && it.depth > 0) ? it.depth : 0;
-					lbl.className = 'bbm-category-option' + (depth > 0 ? ' bbm-category-option--child' : '');
-					if (depth > 0) {
-						lbl.style.paddingLeft = (10 + 18 * depth) + 'px';
-					}
-					var cb = document.createElement('input');
-					cb.type = 'checkbox';
-					cb.value = String(it.id);
-					cb.checked = sel.indexOf(it.id) !== -1;
-					var span = document.createElement('span');
-					span.textContent = it.name;
-					lbl.appendChild(cb);
-					lbl.appendChild(span);
-					panel.appendChild(lbl);
+					panel.appendChild(buildTreeNode(it, isTreeMode));
 				});
+			}
+
+			function buildTreeNode(node, isTreeMode) {
+				var wrapper = document.createElement('div');
+				wrapper.className = 'bbm-tree-node';
+
+				var row = document.createElement('div');
+				row.className = 'bbm-tree-row';
+
+				var hasChildren = node.children && node.children.length > 0;
+				var toggle = null;
+				if (hasChildren) {
+					toggle = document.createElement('button');
+					toggle.type = 'button';
+					toggle.className = 'bbm-tree-toggle';
+					toggle.setAttribute('aria-expanded', 'false');
+					toggle.setAttribute('aria-label', 'Expand');
+					toggle.textContent = '▸'; // right triangle
+					row.appendChild(toggle);
+				} else if (isTreeMode) {
+					var spacer = document.createElement('span');
+					spacer.className = 'bbm-tree-spacer';
+					spacer.setAttribute('aria-hidden', 'true');
+					row.appendChild(spacer);
+				}
+
+				var lbl = document.createElement('label');
+				lbl.className = 'bbm-tree-label';
+				var cb = document.createElement('input');
+				cb.type = 'checkbox';
+				cb.value = String(node.id);
+				cb.checked = opts.selectedRef().indexOf(node.id) !== -1;
+				var span = document.createElement('span');
+				span.textContent = node.name;
+				lbl.appendChild(cb);
+				lbl.appendChild(span);
+				row.appendChild(lbl);
+				wrapper.appendChild(row);
+
+				if (hasChildren) {
+					var childContainer = document.createElement('div');
+					childContainer.className = 'bbm-tree-children';
+					childContainer.hidden = true;
+					node.children.forEach(function (c) {
+						childContainer.appendChild(buildTreeNode(c, isTreeMode));
+					});
+					wrapper.appendChild(childContainer);
+
+					toggle.addEventListener('click', function (e) {
+						e.preventDefault();
+						e.stopPropagation();
+						var isOpen = !childContainer.hidden;
+						childContainer.hidden = isOpen;
+						toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+						toggle.textContent = isOpen ? '▸' : '▾';
+					});
+				}
+
+				return wrapper;
 			}
 
 			function updateLabel() {

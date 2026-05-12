@@ -166,21 +166,26 @@ class Shortcode {
 					$by_parent[ $k ] = $list;
 				}
 
-				$walker = function ( $parent_id, $depth ) use ( &$walker, &$by_parent, &$destinations ) {
+				$walker = function ( $parent_id ) use ( &$walker, &$by_parent ) {
+					$out = [];
 					if ( empty( $by_parent[ $parent_id ] ) ) {
-						return;
+						return $out;
 					}
 					foreach ( $by_parent[ $parent_id ] as $t ) {
-						$destinations[] = [
-							'id'    => (int) $t->term_id,
-							'slug'  => $t->slug,
-							'name'  => $t->name,
-							'depth' => (int) $depth,
+						$node = [
+							'id'   => (int) $t->term_id,
+							'slug' => $t->slug,
+							'name' => $t->name,
 						];
-						$walker( (int) $t->term_id, $depth + 1 );
+						$children = $walker( (int) $t->term_id );
+						if ( ! empty( $children ) ) {
+							$node['children'] = $children;
+						}
+						$out[] = $node;
 					}
+					return $out;
 				};
-				$walker( 0, 0 );
+				$destinations = $walker( 0 );
 			}
 		}
 
@@ -231,8 +236,8 @@ class Shortcode {
 					'searching'               => __( 'Searching lodges…', 'bushbreaks-maps' ),
 					'categoryPlaceholder'     => __( 'Filter by category…', 'bushbreaks-maps' ),
 					'removeCategory'          => __( 'Remove filter', 'bushbreaks-maps' ),
-					'destinationPlaceholder'  => __( 'Filter by destination…', 'bushbreaks-maps' ),
-					'removeDestination'       => __( 'Remove destination filter', 'bushbreaks-maps' ),
+					'destinationPlaceholder'  => __( 'Filter by Region…', 'bushbreaks-maps' ),
+					'removeDestination'       => __( 'Remove region filter', 'bushbreaks-maps' ),
 					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
 					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
 				],
@@ -248,7 +253,7 @@ class Shortcode {
 			'viewDetails'            => __( 'View details', 'bushbreaks-maps' ),
 			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
 			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
-			'destinationPlaceholder' => __( 'Filter by destination…', 'bushbreaks-maps' ),
+			'destinationPlaceholder' => __( 'Filter by Region…', 'bushbreaks-maps' ),
 		];
 		include $template;
 		return (string) ob_get_clean();
