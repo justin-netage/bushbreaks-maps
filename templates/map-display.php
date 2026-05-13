@@ -17,8 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 				class="bbm-search-input"
 				placeholder="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 				aria-label="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
+				autocomplete="off"
 			/>
-			<div class="bbm-suggestion" aria-live="polite" hidden></div>
+			<div class="bbm-suggestion" role="listbox" hidden></div>
 		</div>
 
 		<div class="bbm-destinations bbm-filter-group" hidden>

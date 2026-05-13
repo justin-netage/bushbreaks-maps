@@ -110,6 +110,19 @@
 				clearTimeout(searchTimer);
 				searchTimer = setTimeout(function () { runSearch(searchInput.value); }, 250);
 			});
+			searchInput.addEventListener('focus', function () {
+				updateSuggestion(searchInput.value);
+			});
+			searchInput.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') hideSuggestions();
+			});
+			document.addEventListener('mousedown', function (e) {
+				if (!suggestionEl || suggestionEl.hidden) return;
+				var searchWrap = searchInput.closest('.bbm-search');
+				if (searchWrap && !searchWrap.contains(e.target)) {
+					hideSuggestions();
+				}
+			});
 		}
 
 		// Category + destination filters
@@ -757,30 +770,45 @@
 			return scored.slice(0, MAX).map(function (s) { return s.name; });
 		}
 
+		var currentSuggestions = [];
+
+		function hideSuggestions() {
+			if (!suggestionEl) return;
+			suggestionEl.hidden = true;
+			suggestionEl.textContent = '';
+			currentSuggestions = [];
+		}
+
 		function updateSuggestion(term) {
 			if (!suggestionEl) return;
 			term = (term || '').trim();
 			suggestionEl.textContent = '';
 			if (term === '') {
 				suggestionEl.hidden = true;
+				currentSuggestions = [];
 				return;
 			}
 			var matches = findSuggestions(term);
-			// If the only match is exactly what the user typed, no point showing it.
 			if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === term.toLowerCase())) {
 				suggestionEl.hidden = true;
+				currentSuggestions = [];
 				return;
 			}
+			currentSuggestions = matches;
 			matches.forEach(function (name) {
 				var btn = document.createElement('button');
 				btn.type = 'button';
-				btn.className = 'bbm-suggestion-chip';
+				btn.className = 'bbm-suggestion-option';
+				btn.setAttribute('role', 'option');
 				btn.textContent = name;
+				btn.addEventListener('mousedown', function (e) {
+					// Prevent the input from losing focus before click fires.
+					e.preventDefault();
+				});
 				btn.addEventListener('click', function () {
 					if (!searchInput) return;
 					searchInput.value = name;
-					suggestionEl.hidden = true;
-					suggestionEl.textContent = '';
+					hideSuggestions();
 					runSearch(name);
 				});
 				suggestionEl.appendChild(btn);
