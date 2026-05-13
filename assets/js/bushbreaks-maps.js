@@ -179,12 +179,43 @@
 				var cb = e.target.closest('input[type="checkbox"]');
 				if (!cb) return;
 				var id = parseInt(cb.value, 10);
+				var node = findItemById(opts.items, id);
+				var hasChildren = !!(node && node.children && node.children.length);
+
 				var sel = opts.selectedRef();
 				if (cb.checked) {
 					if (sel.indexOf(id) === -1) sel.push(id);
 				} else {
 					sel = sel.filter(function (cid) { return cid !== id; });
 				}
+
+				if (hasChildren) {
+					// Cascade selection state to every descendant.
+					(function walk(children) {
+						children.forEach(function (c) {
+							if (cb.checked) {
+								if (sel.indexOf(c.id) === -1) sel.push(c.id);
+							} else {
+								sel = sel.filter(function (cid) { return cid !== c.id; });
+							}
+							if (c.children && c.children.length) walk(c.children);
+						});
+					})(node.children);
+
+					var parentNode = cb.closest('.bbm-tree-node');
+					if (parentNode) {
+						parentNode.querySelectorAll('.bbm-tree-children input[type="checkbox"]').forEach(function (descCb) {
+							descCb.checked = cb.checked;
+						});
+						parentNode.querySelectorAll('.bbm-tree-children').forEach(function (cc) {
+							cc.hidden = !cb.checked;
+						});
+						parentNode.querySelectorAll('.bbm-tree-toggle').forEach(function (t) {
+							t.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+						});
+					}
+				}
+
 				opts.setSelected(sel);
 				renderChips();
 				updateLabel();
