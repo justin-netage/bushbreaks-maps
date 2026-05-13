@@ -252,6 +252,7 @@ class Shortcode {
 					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
 					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
 					'clearAll'                => __( 'Clear all', 'bushbreaks-maps' ),
+					'suggestionsClose'        => __( 'Close', 'bushbreaks-maps' ),
 				],
 			]
 		);

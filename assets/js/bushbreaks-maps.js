@@ -813,6 +813,18 @@
 				});
 				suggestionEl.appendChild(btn);
 			});
+
+			var footer = document.createElement('div');
+			footer.className = 'bbm-suggestion-footer';
+			var closeBtn = document.createElement('button');
+			closeBtn.type = 'button';
+			closeBtn.className = 'bbm-suggestion-close';
+			closeBtn.textContent = (data.i18n && data.i18n.suggestionsClose) || 'Close';
+			closeBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+			closeBtn.addEventListener('click', hideSuggestions);
+			footer.appendChild(closeBtn);
+			suggestionEl.appendChild(footer);
+
 			suggestionEl.hidden = false;
 		}
 
