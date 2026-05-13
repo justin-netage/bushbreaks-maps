@@ -394,8 +394,9 @@
 			}
 
 			function renderChips() {
+				var wasOpen = !overflowEl.hidden;
 				chips.innerHTML = '';
-				closeOverflow();
+				overflowEl.innerHTML = '';
 
 				var items = opts.selectedRef()
 					.map(function (id) { return findItemById(opts.items, id); })
@@ -406,6 +407,7 @@
 				var threshold = MAX_INLINE_CHIPS + 1;
 				if (items.length <= threshold) {
 					items.forEach(function (it) { chips.appendChild(makeChip(it)); });
+					overflowEl.hidden = true;
 					return;
 				}
 
@@ -417,7 +419,6 @@
 				moreBtn.type = 'button';
 				moreBtn.className = 'bbm-chip bbm-chip-more';
 				moreBtn.textContent = '+' + overflow.length + ' more';
-				moreBtn.setAttribute('aria-expanded', 'false');
 				moreBtn.setAttribute('aria-haspopup', 'true');
 				moreBtn.addEventListener('click', function (e) {
 					e.preventDefault();
@@ -426,12 +427,25 @@
 						closeOverflow();
 						return;
 					}
-					overflowEl.innerHTML = '';
-					overflow.forEach(function (it) { overflowEl.appendChild(makeChip(it)); });
+					populateOverflow(overflow);
 					overflowEl.hidden = false;
 					moreBtn.setAttribute('aria-expanded', 'true');
 				});
 				chips.appendChild(moreBtn);
+
+				if (wasOpen) {
+					populateOverflow(overflow);
+					overflowEl.hidden = false;
+					moreBtn.setAttribute('aria-expanded', 'true');
+				} else {
+					overflowEl.hidden = true;
+					moreBtn.setAttribute('aria-expanded', 'false');
+				}
+			}
+
+			function populateOverflow(items) {
+				overflowEl.innerHTML = '';
+				items.forEach(function (it) { overflowEl.appendChild(makeChip(it)); });
 			}
 
 			function findItemById(items, id) {

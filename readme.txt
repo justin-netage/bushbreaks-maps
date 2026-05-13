@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.0
+Stable tag: 0.9.1
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,10 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.1 =
+* Removing a chip from inside the "+N more" popover no longer closes it — the popover stays open with the remaining items until none are left.
+* Renamed the destination filter label from "Filter by Region…" to "Filter by Region or Reserve…" (and the corresponding remove aria-label).
 
 = 0.9.0 =
 * Selected-filter chips truncate when there are many: the first 3 show inline, with a "+N more" pill that opens a popover containing the rest. The popover is bounded (max 200px) and scrollable, so the layout never gets pushed down by a long selection list. Chip removal works the same in both places.
