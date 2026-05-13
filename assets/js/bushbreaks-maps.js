@@ -190,29 +190,26 @@
 				}
 
 				if (hasChildren) {
-					// Cascade selection state to every descendant.
-					(function walk(children) {
-						children.forEach(function (c) {
-							if (cb.checked) {
-								if (sel.indexOf(c.id) === -1) sel.push(c.id);
-							} else {
-								sel = sel.filter(function (cid) { return cid !== c.id; });
-							}
-							if (c.children && c.children.length) walk(c.children);
-						});
-					})(node.children);
-
+					// Expand the subtree when the parent is checked so the user
+					// can pick specific children; collapse it again on uncheck.
+					// Child selection state is NOT modified — only visibility.
 					var parentNode = cb.closest('.bbm-tree-node');
 					if (parentNode) {
-						parentNode.querySelectorAll('.bbm-tree-children input[type="checkbox"]').forEach(function (descCb) {
-							descCb.checked = cb.checked;
-						});
-						parentNode.querySelectorAll('.bbm-tree-children').forEach(function (cc) {
-							cc.hidden = !cb.checked;
-						});
-						parentNode.querySelectorAll('.bbm-tree-toggle').forEach(function (t) {
-							t.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
-						});
+						var ownChildren = null;
+						for (var i = 0; i < parentNode.children.length; i++) {
+							if (parentNode.children[i].classList && parentNode.children[i].classList.contains('bbm-tree-children')) {
+								ownChildren = parentNode.children[i];
+								break;
+							}
+						}
+						if (ownChildren) {
+							ownChildren.hidden = !cb.checked;
+							var row = parentNode.querySelector('.bbm-tree-row');
+							var ownToggle = row ? row.querySelector('.bbm-tree-toggle') : null;
+							if (ownToggle) {
+								ownToggle.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+							}
+						}
 					}
 				}
 
