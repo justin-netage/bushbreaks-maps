@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.8.6
+Stable tag: 0.8.7
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.8.7 =
+* Checking a parent destination now selects and expands all of its children; unchecking it deselects them and collapses the subtree.
 
 = 0.8.6 =
 * Sticky Close button: stays pinned to the bottom-right corner of the suggestion dropdown while scrolling through long lists.
