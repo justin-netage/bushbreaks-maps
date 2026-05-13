@@ -114,11 +114,13 @@
 }
 
 .bbm-suggestion-footer {
+	position: sticky;
+	bottom: 0;
 	display: flex;
 	justify-content: flex-end;
 	padding: 4px 6px 2px;
+	background: #fff;
 	border-top: 1px solid #eef0f2;
-	margin-top: 4px;
 }
 
 .bbm-suggestion-close {
