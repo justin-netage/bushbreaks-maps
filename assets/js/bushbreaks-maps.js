@@ -669,11 +669,11 @@
 			fitToAllMarkers();
 		}
 
+		// Suggestion pool is terms only (destination + category names).
+		// Lodge titles are intentionally excluded — searches should bias
+		// toward places/regions, not specific accommodations.
 		function buildSuggestionPool() {
 			var pool = [];
-			(data.locations || []).forEach(function (l) {
-				if (l && l.title) pool.push(String(l.title));
-			});
 			function walkDests(list) {
 				(list || []).forEach(function (d) {
 					if (d && d.name) pool.push(String(d.name));
@@ -711,67 +711,80 @@
 			return prev[n];
 		}
 
-		function findSuggestion(term) {
+		// Returns up to MAX ranked term suggestions. Rank order:
+		// 0 = prefix match, 1 = substring match, 2 = fuzzy match.
+		// Within a rank, items keep their pool order.
+		function findSuggestions(term) {
+			var MAX = 6;
 			term = term.trim().toLowerCase();
-			if (term.length < 3) return null;
-			// If any pool entry already contains the term as substring, no
-			// suggestion needed — the exact-substring search will hit.
+			if (term.length < 2) return [];
+
+			var scored = [];
 			for (var i = 0; i < suggestionPool.length; i++) {
-				if (suggestionPool[i].toLowerCase().indexOf(term) !== -1) return null;
-			}
-			var best = null, bestRatio = Infinity;
-			for (var j = 0; j < suggestionPool.length; j++) {
-				var cand = suggestionPool[j];
-				var words = cand.split(/\s+/);
-				words.push(cand); // also compare against the whole string
-				for (var w = 0; w < words.length; w++) {
-					var word = words[w].toLowerCase();
-					if (word.length < 3) continue;
-					if (Math.abs(word.length - term.length) > 3) continue;
-					var dist = levDistance(term, word);
-					var ratio = dist / Math.max(term.length, word.length);
-					if (ratio <= 0.3 && ratio < bestRatio) {
-						bestRatio = ratio;
-						best = cand;
+				var cand = suggestionPool[i];
+				var lower = cand.toLowerCase();
+				var rank = -1;
+
+				if (lower.indexOf(term) === 0) {
+					rank = 0;
+				} else if (lower.indexOf(term) !== -1) {
+					rank = 1;
+				} else if (term.length >= 3) {
+					var words = lower.split(/\s+/);
+					words.push(lower);
+					for (var w = 0; w < words.length; w++) {
+						var word = words[w];
+						if (word.length < 3) continue;
+						if (Math.abs(word.length - term.length) > 3) continue;
+						var dist = levDistance(term, word);
+						var ratio = dist / Math.max(term.length, word.length);
+						if (ratio <= 0.3) {
+							rank = 2;
+							break;
+						}
 					}
 				}
+
+				if (rank !== -1) {
+					scored.push({ name: cand, rank: rank, idx: i });
+				}
 			}
-			return best;
+
+			scored.sort(function (a, b) {
+				if (a.rank !== b.rank) return a.rank - b.rank;
+				return a.idx - b.idx;
+			});
+			return scored.slice(0, MAX).map(function (s) { return s.name; });
 		}
 
 		function updateSuggestion(term) {
 			if (!suggestionEl) return;
 			term = (term || '').trim();
+			suggestionEl.textContent = '';
 			if (term === '') {
 				suggestionEl.hidden = true;
-				suggestionEl.textContent = '';
 				return;
 			}
-			var match = findSuggestion(term);
-			if (!match) {
+			var matches = findSuggestions(term);
+			// If the only match is exactly what the user typed, no point showing it.
+			if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === term.toLowerCase())) {
 				suggestionEl.hidden = true;
-				suggestionEl.textContent = '';
 				return;
 			}
-			var template = (data.i18n && data.i18n.didYouMean) || 'Did you mean %s?';
-			var parts = template.split('%s');
-			suggestionEl.textContent = '';
-			suggestionEl.appendChild(document.createTextNode(parts[0] || ''));
-			var btn = document.createElement('button');
-			btn.type = 'button';
-			btn.className = 'bbm-suggestion-link';
-			btn.textContent = match;
-			btn.addEventListener('click', function () {
-				if (!searchInput) return;
-				searchInput.value = match;
-				suggestionEl.hidden = true;
-				suggestionEl.textContent = '';
-				runSearch(match);
+			matches.forEach(function (name) {
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'bbm-suggestion-chip';
+				btn.textContent = name;
+				btn.addEventListener('click', function () {
+					if (!searchInput) return;
+					searchInput.value = name;
+					suggestionEl.hidden = true;
+					suggestionEl.textContent = '';
+					runSearch(name);
+				});
+				suggestionEl.appendChild(btn);
 			});
-			suggestionEl.appendChild(btn);
-			if (parts.length > 1) {
-				suggestionEl.appendChild(document.createTextNode(parts[1] || ''));
-			}
 			suggestionEl.hidden = false;
 		}
 
