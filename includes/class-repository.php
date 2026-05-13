@@ -90,70 +90,59 @@ class Repository {
 		$ids = null; // null = no constraint applied yet
 
 		if ( $term !== '' ) {
-			$text_query = new \WP_Query(
+			$tokens = self::tokenize_search( $term );
+			if ( empty( $tokens ) ) {
+				return [];
+			}
+
+			$post_query = new \WP_Query(
 				array_merge(
 					$base_args,
 					[
-						'posts_per_page' => -1,
-						'fields'         => 'ids',
-						's'              => $term,
+						'posts_per_page'         => -1,
+						'update_post_term_cache' => true,
 					]
 				)
 			);
-			$ids = $text_query->posts;
 
-			$taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
-			if ( $taxonomy !== '' && taxonomy_exists( $taxonomy ) ) {
-				$matching_terms = get_terms(
-					[
-						'taxonomy'   => $taxonomy,
-						'search'     => $term,
-						'hide_empty' => false,
-						'fields'     => 'ids',
-					]
+			$dest_taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
+			$loc_field     = (string) ( $opts['location_field'] ?? '' );
+
+			$matches = [];
+			foreach ( $post_query->posts as $post ) {
+				$parts = [
+					(string) $post->post_title,
+					wp_strip_all_tags( (string) $post->post_content ),
+				];
+				if ( $loc_field !== '' ) {
+					$parts[] = (string) get_post_meta( $post->ID, $loc_field, true );
+				}
+				if ( $dest_taxonomy !== '' && taxonomy_exists( $dest_taxonomy ) ) {
+					$tlist = get_the_terms( $post->ID, $dest_taxonomy );
+					if ( ! is_wp_error( $tlist ) && is_array( $tlist ) ) {
+						foreach ( $tlist as $t ) {
+							$parts[] = (string) $t->name;
+						}
+					}
+				}
+				$haystack = mb_strtolower(
+					implode( ' ', array_filter( $parts, function ( $p ) { return $p !== ''; } ) ),
+					'UTF-8'
 				);
 
-				if ( ! is_wp_error( $matching_terms ) && ! empty( $matching_terms ) ) {
-					$tax_query = new \WP_Query(
-						array_merge(
-							$base_args,
-							[
-								'posts_per_page' => -1,
-								'fields'         => 'ids',
-								'tax_query'      => [
-									[
-										'taxonomy' => $taxonomy,
-										'field'    => 'term_id',
-										'terms'    => $matching_terms,
-									],
-								],
-							]
-						)
-					);
-					$ids = array_merge( $ids, $tax_query->posts );
+				$all_match = true;
+				foreach ( $tokens as $tok ) {
+					if ( mb_strpos( $haystack, $tok, 0, 'UTF-8' ) === false ) {
+						$all_match = false;
+						break;
+					}
+				}
+				if ( $all_match ) {
+					$matches[] = (int) $post->ID;
 				}
 			}
 
-			$location_field = (string) ( $opts['location_field'] ?? '' );
-			if ( $location_field !== '' ) {
-				$location_query = new \WP_Query(
-					array_merge(
-						$base_args,
-						[
-							'posts_per_page' => -1,
-							'fields'         => 'ids',
-							'meta_query'     => [
-								[
-									'key'     => $location_field,
-									'value'   => $term,
-									'compare' => 'LIKE',
-								],
-							],
-						]
-					)
-				);
-				$ids = array_merge( $ids, $location_query->posts );
-			}
+			$ids = $matches;
 		}
 
 		// Intersect with destination filter (any-of semantics within filter)
@@ -217,6 +206,18 @@ class Repository {
 		}
 
 		return array_values( array_unique( array_map( 'intval', $ids ?: [] ) ) );
+	}
+
+	private static function tokenize_search( string $term ): array {
+		$term = mb_strtolower( trim( $term ), 'UTF-8' );
+		if ( $term === '' ) {
+			return [];
+		}
+		$tokens = preg_split( '/\s+/u', $term, -1, PREG_SPLIT_NO_EMPTY );
+		$tokens = array_filter( (array) $tokens, function ( $t ) {
+			return $t !== '';
+		} );
+		return array_values( array_unique( $tokens ) );
 	}
 
 	/**
