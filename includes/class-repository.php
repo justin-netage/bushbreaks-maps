@@ -82,9 +82,9 @@ class Repository {
 	}
 
 	/**
-	 * Build the ID set for a search: title/content matches UNION posts
-	 * tagged with destination terms whose name matches the query UNION
-	 * posts whose Pods location field contains the query.
+	 * Build the ID set for a search: title matches UNION posts tagged
+	 * with destination terms whose name matches the query UNION posts
+	 * whose Pods location field contains the query.
 	 */
 	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [], array $destination_ids = [] ): array {
 		$ids = null; // null = no constraint applied yet
@@ -100,7 +100,9 @@ class Repository {
 					$base_args,
 					[
 						'posts_per_page'         => -1,
+						'fields'                 => 'ids',
 						'update_post_term_cache' => true,
+						'update_post_meta_cache' => true,
 					]
 				)
 			);
@@ -110,16 +112,16 @@ class Repository {
 
 			$matches    = [];
 			$haystacks  = [];
-			foreach ( $post_query->posts as $post ) {
+			foreach ( $post_query->posts as $post_id ) {
+				$pid = (int) $post_id;
 				$parts = [
-					(string) $post->post_title,
-					wp_strip_all_tags( (string) $post->post_content ),
+					(string) get_the_title( $pid ),
 				];
 				if ( $loc_field !== '' ) {
-					$parts[] = (string) get_post_meta( $post->ID, $loc_field, true );
+					$parts[] = (string) get_post_meta( $pid, $loc_field, true );
 				}
 				if ( $dest_taxonomy !== '' && taxonomy_exists( $dest_taxonomy ) ) {
-					$tlist = get_the_terms( $post->ID, $dest_taxonomy );
+					$tlist = get_the_terms( $pid, $dest_taxonomy );
 					if ( ! is_wp_error( $tlist ) && is_array( $tlist ) ) {
 						foreach ( $tlist as $t ) {
 							$parts[] = (string) $t->name;
@@ -130,7 +132,7 @@ class Repository {
 					implode( ' ', array_filter( $parts, function ( $p ) { return $p !== ''; } ) ),
 					'UTF-8'
 				);
-				$haystacks[ (int) $post->ID ] = $haystack;
+				$haystacks[ $pid ] = $haystack;
 
 				$all_match = true;
 				foreach ( $tokens as $tok ) {
@@ -140,7 +142,7 @@ class Repository {
 					}
 				}
 				if ( $all_match ) {
-					$matches[] = (int) $post->ID;
+					$matches[] = $pid;
 				}
 			}
 

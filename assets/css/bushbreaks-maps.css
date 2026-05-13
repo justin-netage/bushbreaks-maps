@@ -63,25 +63,32 @@
 }
 
 .bbm-suggestion {
-	margin-top: 6px;
-	font-size: 13px;
-	color: #475467;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
 }
 
-.bbm-suggestion-link {
-	margin: 0 0 0 4px;
-	padding: 0;
-	background: none;
-	border: 0;
-	color: #1d4ed8;
-	font: inherit;
+.bbm-suggestion-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	font-size: 12px;
+	font-family: inherit;
+	line-height: 1.4;
+	color: #1f2937;
+	background: #f1f5f9;
+	border: 1px solid #cfd4da;
+	border-radius: 999px;
 	cursor: pointer;
-	text-decoration: underline;
+	transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
-.bbm-suggestion-link:hover,
-.bbm-suggestion-link:focus {
-	color: #1e40af;
+.bbm-suggestion-chip:hover,
+.bbm-suggestion-chip:focus {
+	background: #1d4ed8;
+	border-color: #1d4ed8;
+	color: #fff;
 	outline: none;
 }
 
