@@ -108,7 +108,8 @@ class Repository {
 			$dest_taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
 			$loc_field     = (string) ( $opts['location_field'] ?? '' );
 
-			$matches = [];
+			$matches    = [];
+			$haystacks  = [];
 			foreach ( $post_query->posts as $post ) {
 				$parts = [
 					(string) $post->post_title,
@@ -129,6 +130,7 @@ class Repository {
 					implode( ' ', array_filter( $parts, function ( $p ) { return $p !== ''; } ) ),
 					'UTF-8'
 				);
+				$haystacks[ (int) $post->ID ] = $haystack;
 
 				$all_match = true;
 				foreach ( $tokens as $tok ) {
@@ -139,6 +141,17 @@ class Repository {
 				}
 				if ( $all_match ) {
 					$matches[] = (int) $post->ID;
+				}
+			}
+
+			// Fuzzy fallback: if no exact-substring matches, try a Levenshtein
+			// pass so common typos (e.g. "Pilanesbrug" -> "Pilanesberg") still
+			// return results.
+			if ( empty( $matches ) ) {
+				foreach ( $haystacks as $pid => $haystack ) {
+					if ( self::fuzzy_all_tokens_match( $tokens, $haystack ) ) {
+						$matches[] = (int) $pid;
+					}
 				}
 			}
 
@@ -206,6 +219,54 @@ class Repository {
 		}
 
 		return array_values( array_unique( array_map( 'intval', $ids ?: [] ) ) );
+	}
+
+	/**
+	 * True when every token has at least one word in the haystack within
+	 * Levenshtein tolerance. Each token must be 3+ chars to avoid noisy
+	 * matches on prepositions and stop words.
+	 */
+	private static function fuzzy_all_tokens_match( array $tokens, string $haystack ): bool {
+		if ( $haystack === '' ) {
+			return false;
+		}
+		$words = preg_split( '/\s+/u', $haystack, -1, PREG_SPLIT_NO_EMPTY );
+		if ( empty( $words ) ) {
+			return false;
+		}
+		foreach ( $tokens as $tok ) {
+			if ( mb_strlen( $tok, 'UTF-8' ) < 3 ) {
+				return false;
+			}
+			$hit = false;
+			foreach ( $words as $w ) {
+				if ( self::within_distance( $tok, (string) $w ) ) {
+					$hit = true;
+					break;
+				}
+			}
+			if ( ! $hit ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Length-normalized Levenshtein. Tolerates ~30% character difference,
+	 * which catches single-character typos in 4+ character words.
+	 */
+	private static function within_distance( string $a, string $b ): bool {
+		$la = strlen( $a );
+		$lb = strlen( $b );
+		if ( $la === 0 || $lb === 0 || $la > 64 || $lb > 64 ) {
+			return false;
+		}
+		if ( abs( $la - $lb ) > 3 ) {
+			return false;
+		}
+		$dist = levenshtein( $a, $b );
+		return ( $dist / max( $la, $lb ) ) <= 0.3;
 	}
 
 	private static function tokenize_search( string $term ): array {

@@ -62,6 +62,29 @@
 	outline: none;
 }
 
+.bbm-suggestion {
+	margin-top: 6px;
+	font-size: 13px;
+	color: #475467;
+}
+
+.bbm-suggestion-link {
+	margin: 0 0 0 4px;
+	padding: 0;
+	background: none;
+	border: 0;
+	color: #1d4ed8;
+	font: inherit;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.bbm-suggestion-link:hover,
+.bbm-suggestion-link:focus {
+	color: #1e40af;
+	outline: none;
+}
+
 .bbm-categories,
 .bbm-destinations {
 	flex: 0 0 auto;
