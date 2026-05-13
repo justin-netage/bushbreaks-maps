@@ -160,7 +160,14 @@
 				return { renderChips: function () {}, updateLabel: function () {} };
 			}
 
+			var overflowEl = document.createElement('div');
+			overflowEl.className = 'bbm-chips-overflow';
+			overflowEl.setAttribute('role', 'list');
+			overflowEl.hidden = true;
+			chips.parentNode.insertBefore(overflowEl, chips.nextSibling);
+
 			var parentBadges = []; // [{ node, el }]
+			var MAX_INLINE_CHIPS = 3;
 
 			groupEl.hidden = false;
 			renderPanel();
@@ -190,29 +197,26 @@
 				}
 
 				if (hasChildren) {
-					// Cascade selection state to every descendant.
-					(function walk(children) {
-						children.forEach(function (c) {
-							if (cb.checked) {
-								if (sel.indexOf(c.id) === -1) sel.push(c.id);
-							} else {
-								sel = sel.filter(function (cid) { return cid !== c.id; });
-							}
-							if (c.children && c.children.length) walk(c.children);
-						});
-					})(node.children);
-
+					// Expand the subtree when the parent is checked so the user
+					// can pick specific children; collapse it again on uncheck.
+					// Child selection state is NOT modified — only visibility.
 					var parentNode = cb.closest('.bbm-tree-node');
 					if (parentNode) {
-						parentNode.querySelectorAll('.bbm-tree-children input[type="checkbox"]').forEach(function (descCb) {
-							descCb.checked = cb.checked;
-						});
-						parentNode.querySelectorAll('.bbm-tree-children').forEach(function (cc) {
-							cc.hidden = !cb.checked;
-						});
-						parentNode.querySelectorAll('.bbm-tree-toggle').forEach(function (t) {
-							t.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
-						});
+						var ownChildren = null;
+						for (var i = 0; i < parentNode.children.length; i++) {
+							if (parentNode.children[i].classList && parentNode.children[i].classList.contains('bbm-tree-children')) {
+								ownChildren = parentNode.children[i];
+								break;
+							}
+						}
+						if (ownChildren) {
+							ownChildren.hidden = !cb.checked;
+							var row = parentNode.querySelector('.bbm-tree-row');
+							var ownToggle = row ? row.querySelector('.bbm-tree-toggle') : null;
+							if (ownToggle) {
+								ownToggle.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+							}
+						}
 					}
 				}
 
@@ -223,10 +227,7 @@
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
-			chips.addEventListener('click', function (e) {
-				var btn = e.target.closest('.bbm-chip-remove');
-				if (!btn) return;
-				var id = parseInt(btn.getAttribute('data-id'), 10);
+			function removeSelected(id) {
 				var sel = opts.selectedRef().filter(function (cid) { return cid !== id; });
 				opts.setSelected(sel);
 				var cb = panel.querySelector('input[type="checkbox"][value="' + id + '"]');
@@ -235,6 +236,18 @@
 				updateLabel();
 				updateBadges();
 				runSearch(searchInput ? searchInput.value : '');
+			}
+
+			chips.addEventListener('click', function (e) {
+				var btn = e.target.closest('.bbm-chip-remove');
+				if (!btn) return;
+				removeSelected(parseInt(btn.getAttribute('data-id'), 10));
+			});
+
+			overflowEl.addEventListener('click', function (e) {
+				var btn = e.target.closest('.bbm-chip-remove');
+				if (!btn) return;
+				removeSelected(parseInt(btn.getAttribute('data-id'), 10));
 			});
 
 			document.addEventListener('click', function (e) {
@@ -244,6 +257,24 @@
 					toggle.setAttribute('aria-expanded', 'false');
 				}
 			});
+
+			document.addEventListener('mousedown', function (e) {
+				if (overflowEl.hidden) return;
+				if (groupEl.contains(e.target)) return;
+				closeOverflow();
+			});
+
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') closeOverflow();
+			});
+
+			function closeOverflow() {
+				if (overflowEl.hidden) return;
+				overflowEl.hidden = true;
+				overflowEl.innerHTML = '';
+				var more = chips.querySelector('.bbm-chip-more');
+				if (more) more.setAttribute('aria-expanded', 'false');
+			}
 
 			function renderPanel() {
 				panel.innerHTML = '';
@@ -351,20 +382,56 @@
 				label.textContent = n > 0 ? opts.placeholder + ' (' + n + ')' : opts.placeholder;
 			}
 
+			function makeChip(it) {
+				var chip = document.createElement('span');
+				chip.className = 'bbm-chip';
+				chip.setAttribute('role', 'listitem');
+				chip.innerHTML = escapeHtml(it.name)
+					+ ' <button type="button" class="bbm-chip-remove" aria-label="'
+					+ escapeAttr(opts.removeLabel)
+					+ '" data-id="' + it.id + '">&times;</button>';
+				return chip;
+			}
+
 			function renderChips() {
 				chips.innerHTML = '';
-				opts.selectedRef().forEach(function (id) {
-					var it = findItemById(opts.items, id);
-					if (!it) return;
-					var chip = document.createElement('span');
-					chip.className = 'bbm-chip';
-					chip.setAttribute('role', 'listitem');
-					chip.innerHTML = escapeHtml(it.name)
-						+ ' <button type="button" class="bbm-chip-remove" aria-label="'
-						+ escapeAttr(opts.removeLabel)
-						+ '" data-id="' + id + '">&times;</button>';
-					chips.appendChild(chip);
+				closeOverflow();
+
+				var items = opts.selectedRef()
+					.map(function (id) { return findItemById(opts.items, id); })
+					.filter(function (it) { return !!it; });
+
+				// Show everything inline if it fits in MAX_INLINE_CHIPS + 1
+				// (avoids a "+1 more" popover for a single overflow item).
+				var threshold = MAX_INLINE_CHIPS + 1;
+				if (items.length <= threshold) {
+					items.forEach(function (it) { chips.appendChild(makeChip(it)); });
+					return;
+				}
+
+				var inline = items.slice(0, MAX_INLINE_CHIPS);
+				var overflow = items.slice(MAX_INLINE_CHIPS);
+				inline.forEach(function (it) { chips.appendChild(makeChip(it)); });
+
+				var moreBtn = document.createElement('button');
+				moreBtn.type = 'button';
+				moreBtn.className = 'bbm-chip bbm-chip-more';
+				moreBtn.textContent = '+' + overflow.length + ' more';
+				moreBtn.setAttribute('aria-expanded', 'false');
+				moreBtn.setAttribute('aria-haspopup', 'true');
+				moreBtn.addEventListener('click', function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					if (!overflowEl.hidden) {
+						closeOverflow();
+						return;
+					}
+					overflowEl.innerHTML = '';
+					overflow.forEach(function (it) { overflowEl.appendChild(makeChip(it)); });
+					overflowEl.hidden = false;
+					moreBtn.setAttribute('aria-expanded', 'true');
 				});
+				chips.appendChild(moreBtn);
 			}
 
 			function findItemById(items, id) {

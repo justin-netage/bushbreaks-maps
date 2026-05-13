@@ -145,6 +145,7 @@
 .bbm-destinations {
 	flex: 0 0 auto;
 	margin-bottom: 14px;
+	position: relative;
 }
 
 .bbm-categories[hidden],
@@ -390,6 +391,45 @@
 
 .bbm-chip-remove:hover {
 	opacity: 1;
+}
+
+.bbm-chip-more {
+	border: 0;
+	cursor: pointer;
+	background: #3a5b00;
+	padding: 4px 10px;
+	font-family: inherit;
+}
+
+.bbm-chip-more:hover,
+.bbm-chip-more:focus,
+.bbm-chip-more[aria-expanded="true"] {
+	background: #2c7a3d;
+	outline: none;
+}
+
+.bbm-chips-overflow {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-height: 200px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	margin-top: 4px;
+	padding: 8px;
+	background: #fff;
+	border: 1px solid #e3e6ea;
+	border-radius: 8px;
+	box-shadow: 0 12px 28px rgba(15, 30, 50, 0.10), 0 2px 6px rgba(15, 30, 50, 0.06);
+}
+
+.bbm-chips-overflow[hidden] {
+	display: none;
 }
 
 .bbm-filter-actions {
