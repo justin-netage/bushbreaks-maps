@@ -38,7 +38,9 @@
 
 .bbm-search-input,
 .bbm-category-toggle {
+	display: block;
 	width: 100%;
+	margin: 0;
 	padding: 10px 14px;
 	font-size: 14px;
 	font-family: inherit;
