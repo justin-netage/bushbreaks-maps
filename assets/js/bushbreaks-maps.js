@@ -39,6 +39,8 @@
 		var listEl = wrap ? wrap.querySelector('.bbm-list') : null;
 		var loaderEl = wrap ? wrap.querySelector('.bbm-loader') : null;
 		var resultCountEl = wrap ? wrap.querySelector('.bbm-result-count') : null;
+		var suggestionEl = wrap ? wrap.querySelector('.bbm-suggestion') : null;
+		var suggestionPool = buildSuggestionPool();
 
 		// Map handles — populated by mapInit().
 		var lmap = null;       // Leaflet map
@@ -667,8 +669,115 @@
 			fitToAllMarkers();
 		}
 
+		function buildSuggestionPool() {
+			var pool = [];
+			(data.locations || []).forEach(function (l) {
+				if (l && l.title) pool.push(String(l.title));
+			});
+			function walkDests(list) {
+				(list || []).forEach(function (d) {
+					if (d && d.name) pool.push(String(d.name));
+					if (d && d.children) walkDests(d.children);
+				});
+			}
+			walkDests(data.destinations);
+			(data.categories || []).forEach(function (c) {
+				if (c && c.name) pool.push(String(c.name));
+			});
+			var seen = {};
+			return pool.filter(function (s) {
+				var k = s.toLowerCase();
+				if (seen[k]) return false;
+				seen[k] = true;
+				return true;
+			});
+		}
+
+		function levDistance(a, b) {
+			var m = a.length, n = b.length;
+			if (m === 0) return n;
+			if (n === 0) return m;
+			var prev = new Array(n + 1);
+			var curr = new Array(n + 1);
+			for (var j = 0; j <= n; j++) prev[j] = j;
+			for (var i = 1; i <= m; i++) {
+				curr[0] = i;
+				for (var k = 1; k <= n; k++) {
+					var cost = a.charCodeAt(i - 1) === b.charCodeAt(k - 1) ? 0 : 1;
+					curr[k] = Math.min(curr[k - 1] + 1, prev[k] + 1, prev[k - 1] + cost);
+				}
+				var tmp = prev; prev = curr; curr = tmp;
+			}
+			return prev[n];
+		}
+
+		function findSuggestion(term) {
+			term = term.trim().toLowerCase();
+			if (term.length < 3) return null;
+			// If any pool entry already contains the term as substring, no
+			// suggestion needed — the exact-substring search will hit.
+			for (var i = 0; i < suggestionPool.length; i++) {
+				if (suggestionPool[i].toLowerCase().indexOf(term) !== -1) return null;
+			}
+			var best = null, bestRatio = Infinity;
+			for (var j = 0; j < suggestionPool.length; j++) {
+				var cand = suggestionPool[j];
+				var words = cand.split(/\s+/);
+				words.push(cand); // also compare against the whole string
+				for (var w = 0; w < words.length; w++) {
+					var word = words[w].toLowerCase();
+					if (word.length < 3) continue;
+					if (Math.abs(word.length - term.length) > 3) continue;
+					var dist = levDistance(term, word);
+					var ratio = dist / Math.max(term.length, word.length);
+					if (ratio <= 0.3 && ratio < bestRatio) {
+						bestRatio = ratio;
+						best = cand;
+					}
+				}
+			}
+			return best;
+		}
+
+		function updateSuggestion(term) {
+			if (!suggestionEl) return;
+			term = (term || '').trim();
+			if (term === '') {
+				suggestionEl.hidden = true;
+				suggestionEl.textContent = '';
+				return;
+			}
+			var match = findSuggestion(term);
+			if (!match) {
+				suggestionEl.hidden = true;
+				suggestionEl.textContent = '';
+				return;
+			}
+			var template = (data.i18n && data.i18n.didYouMean) || 'Did you mean %s?';
+			var parts = template.split('%s');
+			suggestionEl.textContent = '';
+			suggestionEl.appendChild(document.createTextNode(parts[0] || ''));
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'bbm-suggestion-link';
+			btn.textContent = match;
+			btn.addEventListener('click', function () {
+				if (!searchInput) return;
+				searchInput.value = match;
+				suggestionEl.hidden = true;
+				suggestionEl.textContent = '';
+				runSearch(match);
+			});
+			suggestionEl.appendChild(btn);
+			if (parts.length > 1) {
+				suggestionEl.appendChild(document.createTextNode(parts[1] || ''));
+			}
+			suggestionEl.hidden = false;
+		}
+
 		function runSearch(term) {
 			term = (term || '').trim();
+			updateSuggestion(term);
 			var hasFilter = term !== ''
 				|| selectedCategoryIds.length > 0
 				|| selectedDestinationIds.length > 0;

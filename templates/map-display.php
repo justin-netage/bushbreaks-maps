@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				placeholder="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 				aria-label="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 			/>
+			<div class="bbm-suggestion" aria-live="polite" hidden></div>
 		</div>
 
 		<div class="bbm-destinations bbm-filter-group" hidden>
