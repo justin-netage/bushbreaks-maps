@@ -39,6 +39,8 @@
 		var listEl = wrap ? wrap.querySelector('.bbm-list') : null;
 		var loaderEl = wrap ? wrap.querySelector('.bbm-loader') : null;
 		var resultCountEl = wrap ? wrap.querySelector('.bbm-result-count') : null;
+		var suggestionEl = wrap ? wrap.querySelector('.bbm-suggestion') : null;
+		var suggestionPool = buildSuggestionPool();
 
 		// Map handles — populated by mapInit().
 		var lmap = null;       // Leaflet map
@@ -108,6 +110,19 @@
 				clearTimeout(searchTimer);
 				searchTimer = setTimeout(function () { runSearch(searchInput.value); }, 250);
 			});
+			searchInput.addEventListener('focus', function () {
+				updateSuggestion(searchInput.value);
+			});
+			searchInput.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') hideSuggestions();
+			});
+			document.addEventListener('mousedown', function (e) {
+				if (!suggestionEl || suggestionEl.hidden) return;
+				var searchWrap = searchInput.closest('.bbm-search');
+				if (searchWrap && !searchWrap.contains(e.target)) {
+					hideSuggestions();
+				}
+			});
 		}
 
 		// Category + destination filters
@@ -145,7 +160,14 @@
 				return { renderChips: function () {}, updateLabel: function () {} };
 			}
 
+			var overflowEl = document.createElement('div');
+			overflowEl.className = 'bbm-chips-overflow';
+			overflowEl.setAttribute('role', 'list');
+			overflowEl.hidden = true;
+			chips.parentNode.insertBefore(overflowEl, chips.nextSibling);
+
 			var parentBadges = []; // [{ node, el }]
+			var MAX_INLINE_CHIPS = 3;
 
 			groupEl.hidden = false;
 			renderPanel();
@@ -164,12 +186,40 @@
 				var cb = e.target.closest('input[type="checkbox"]');
 				if (!cb) return;
 				var id = parseInt(cb.value, 10);
+				var node = findItemById(opts.items, id);
+				var hasChildren = !!(node && node.children && node.children.length);
+
 				var sel = opts.selectedRef();
 				if (cb.checked) {
 					if (sel.indexOf(id) === -1) sel.push(id);
 				} else {
 					sel = sel.filter(function (cid) { return cid !== id; });
 				}
+
+				if (hasChildren) {
+					// Expand the subtree when the parent is checked so the user
+					// can pick specific children; collapse it again on uncheck.
+					// Child selection state is NOT modified — only visibility.
+					var parentNode = cb.closest('.bbm-tree-node');
+					if (parentNode) {
+						var ownChildren = null;
+						for (var i = 0; i < parentNode.children.length; i++) {
+							if (parentNode.children[i].classList && parentNode.children[i].classList.contains('bbm-tree-children')) {
+								ownChildren = parentNode.children[i];
+								break;
+							}
+						}
+						if (ownChildren) {
+							ownChildren.hidden = !cb.checked;
+							var row = parentNode.querySelector('.bbm-tree-row');
+							var ownToggle = row ? row.querySelector('.bbm-tree-toggle') : null;
+							if (ownToggle) {
+								ownToggle.setAttribute('aria-expanded', cb.checked ? 'true' : 'false');
+							}
+						}
+					}
+				}
+
 				opts.setSelected(sel);
 				renderChips();
 				updateLabel();
@@ -177,10 +227,7 @@
 				runSearch(searchInput ? searchInput.value : '');
 			});
 
-			chips.addEventListener('click', function (e) {
-				var btn = e.target.closest('.bbm-chip-remove');
-				if (!btn) return;
-				var id = parseInt(btn.getAttribute('data-id'), 10);
+			function removeSelected(id) {
 				var sel = opts.selectedRef().filter(function (cid) { return cid !== id; });
 				opts.setSelected(sel);
 				var cb = panel.querySelector('input[type="checkbox"][value="' + id + '"]');
@@ -189,6 +236,18 @@
 				updateLabel();
 				updateBadges();
 				runSearch(searchInput ? searchInput.value : '');
+			}
+
+			chips.addEventListener('click', function (e) {
+				var btn = e.target.closest('.bbm-chip-remove');
+				if (!btn) return;
+				removeSelected(parseInt(btn.getAttribute('data-id'), 10));
+			});
+
+			overflowEl.addEventListener('click', function (e) {
+				var btn = e.target.closest('.bbm-chip-remove');
+				if (!btn) return;
+				removeSelected(parseInt(btn.getAttribute('data-id'), 10));
 			});
 
 			document.addEventListener('click', function (e) {
@@ -198,6 +257,24 @@
 					toggle.setAttribute('aria-expanded', 'false');
 				}
 			});
+
+			document.addEventListener('mousedown', function (e) {
+				if (overflowEl.hidden) return;
+				if (groupEl.contains(e.target)) return;
+				closeOverflow();
+			});
+
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') closeOverflow();
+			});
+
+			function closeOverflow() {
+				if (overflowEl.hidden) return;
+				overflowEl.hidden = true;
+				overflowEl.innerHTML = '';
+				var more = chips.querySelector('.bbm-chip-more');
+				if (more) more.setAttribute('aria-expanded', 'false');
+			}
 
 			function renderPanel() {
 				panel.innerHTML = '';
@@ -305,20 +382,70 @@
 				label.textContent = n > 0 ? opts.placeholder + ' (' + n + ')' : opts.placeholder;
 			}
 
+			function makeChip(it) {
+				var chip = document.createElement('span');
+				chip.className = 'bbm-chip';
+				chip.setAttribute('role', 'listitem');
+				chip.innerHTML = escapeHtml(it.name)
+					+ ' <button type="button" class="bbm-chip-remove" aria-label="'
+					+ escapeAttr(opts.removeLabel)
+					+ '" data-id="' + it.id + '">&times;</button>';
+				return chip;
+			}
+
 			function renderChips() {
+				var wasOpen = !overflowEl.hidden;
 				chips.innerHTML = '';
-				opts.selectedRef().forEach(function (id) {
-					var it = findItemById(opts.items, id);
-					if (!it) return;
-					var chip = document.createElement('span');
-					chip.className = 'bbm-chip';
-					chip.setAttribute('role', 'listitem');
-					chip.innerHTML = escapeHtml(it.name)
-						+ ' <button type="button" class="bbm-chip-remove" aria-label="'
-						+ escapeAttr(opts.removeLabel)
-						+ '" data-id="' + id + '">&times;</button>';
-					chips.appendChild(chip);
+				overflowEl.innerHTML = '';
+
+				var items = opts.selectedRef()
+					.map(function (id) { return findItemById(opts.items, id); })
+					.filter(function (it) { return !!it; });
+
+				// Show everything inline if it fits in MAX_INLINE_CHIPS + 1
+				// (avoids a "+1 more" popover for a single overflow item).
+				var threshold = MAX_INLINE_CHIPS + 1;
+				if (items.length <= threshold) {
+					items.forEach(function (it) { chips.appendChild(makeChip(it)); });
+					overflowEl.hidden = true;
+					return;
+				}
+
+				var inline = items.slice(0, MAX_INLINE_CHIPS);
+				var overflow = items.slice(MAX_INLINE_CHIPS);
+				inline.forEach(function (it) { chips.appendChild(makeChip(it)); });
+
+				var moreBtn = document.createElement('button');
+				moreBtn.type = 'button';
+				moreBtn.className = 'bbm-chip bbm-chip-more';
+				moreBtn.textContent = '+' + overflow.length + ' more';
+				moreBtn.setAttribute('aria-haspopup', 'true');
+				moreBtn.addEventListener('click', function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					if (!overflowEl.hidden) {
+						closeOverflow();
+						return;
+					}
+					populateOverflow(overflow);
+					overflowEl.hidden = false;
+					moreBtn.setAttribute('aria-expanded', 'true');
 				});
+				chips.appendChild(moreBtn);
+
+				if (wasOpen) {
+					populateOverflow(overflow);
+					overflowEl.hidden = false;
+					moreBtn.setAttribute('aria-expanded', 'true');
+				} else {
+					overflowEl.hidden = true;
+					moreBtn.setAttribute('aria-expanded', 'false');
+				}
+			}
+
+			function populateOverflow(items) {
+				overflowEl.innerHTML = '';
+				items.forEach(function (it) { overflowEl.appendChild(makeChip(it)); });
 			}
 
 			function findItemById(items, id) {
@@ -667,8 +794,155 @@
 			fitToAllMarkers();
 		}
 
+		// Suggestion pool is terms only (destination + category names).
+		// Lodge titles are intentionally excluded — searches should bias
+		// toward places/regions, not specific accommodations.
+		function buildSuggestionPool() {
+			var pool = [];
+			function walkDests(list) {
+				(list || []).forEach(function (d) {
+					if (d && d.name) pool.push(String(d.name));
+					if (d && d.children) walkDests(d.children);
+				});
+			}
+			walkDests(data.destinations);
+			(data.categories || []).forEach(function (c) {
+				if (c && c.name) pool.push(String(c.name));
+			});
+			var seen = {};
+			return pool.filter(function (s) {
+				var k = s.toLowerCase();
+				if (seen[k]) return false;
+				seen[k] = true;
+				return true;
+			});
+		}
+
+		function levDistance(a, b) {
+			var m = a.length, n = b.length;
+			if (m === 0) return n;
+			if (n === 0) return m;
+			var prev = new Array(n + 1);
+			var curr = new Array(n + 1);
+			for (var j = 0; j <= n; j++) prev[j] = j;
+			for (var i = 1; i <= m; i++) {
+				curr[0] = i;
+				for (var k = 1; k <= n; k++) {
+					var cost = a.charCodeAt(i - 1) === b.charCodeAt(k - 1) ? 0 : 1;
+					curr[k] = Math.min(curr[k - 1] + 1, prev[k] + 1, prev[k - 1] + cost);
+				}
+				var tmp = prev; prev = curr; curr = tmp;
+			}
+			return prev[n];
+		}
+
+		// Returns up to MAX ranked term suggestions. Rank order:
+		// 0 = prefix match, 1 = substring match, 2 = fuzzy match.
+		// Within a rank, items keep their pool order.
+		function findSuggestions(term) {
+			var MAX = 6;
+			term = term.trim().toLowerCase();
+			if (term.length < 2) return [];
+
+			var scored = [];
+			for (var i = 0; i < suggestionPool.length; i++) {
+				var cand = suggestionPool[i];
+				var lower = cand.toLowerCase();
+				var rank = -1;
+
+				if (lower.indexOf(term) === 0) {
+					rank = 0;
+				} else if (lower.indexOf(term) !== -1) {
+					rank = 1;
+				} else if (term.length >= 3) {
+					var words = lower.split(/\s+/);
+					words.push(lower);
+					for (var w = 0; w < words.length; w++) {
+						var word = words[w];
+						if (word.length < 3) continue;
+						if (Math.abs(word.length - term.length) > 3) continue;
+						var dist = levDistance(term, word);
+						var ratio = dist / Math.max(term.length, word.length);
+						if (ratio <= 0.3) {
+							rank = 2;
+							break;
+						}
+					}
+				}
+
+				if (rank !== -1) {
+					scored.push({ name: cand, rank: rank, idx: i });
+				}
+			}
+
+			scored.sort(function (a, b) {
+				if (a.rank !== b.rank) return a.rank - b.rank;
+				return a.idx - b.idx;
+			});
+			return scored.slice(0, MAX).map(function (s) { return s.name; });
+		}
+
+		var currentSuggestions = [];
+
+		function hideSuggestions() {
+			if (!suggestionEl) return;
+			suggestionEl.hidden = true;
+			suggestionEl.textContent = '';
+			currentSuggestions = [];
+		}
+
+		function updateSuggestion(term) {
+			if (!suggestionEl) return;
+			term = (term || '').trim();
+			suggestionEl.textContent = '';
+			if (term === '') {
+				suggestionEl.hidden = true;
+				currentSuggestions = [];
+				return;
+			}
+			var matches = findSuggestions(term);
+			if (matches.length === 0 || (matches.length === 1 && matches[0].toLowerCase() === term.toLowerCase())) {
+				suggestionEl.hidden = true;
+				currentSuggestions = [];
+				return;
+			}
+			currentSuggestions = matches;
+			matches.forEach(function (name) {
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'bbm-suggestion-option';
+				btn.setAttribute('role', 'option');
+				btn.textContent = name;
+				btn.addEventListener('mousedown', function (e) {
+					// Prevent the input from losing focus before click fires.
+					e.preventDefault();
+				});
+				btn.addEventListener('click', function () {
+					if (!searchInput) return;
+					searchInput.value = name;
+					hideSuggestions();
+					runSearch(name);
+				});
+				suggestionEl.appendChild(btn);
+			});
+
+			var footer = document.createElement('div');
+			footer.className = 'bbm-suggestion-footer';
+			var closeBtn = document.createElement('button');
+			closeBtn.type = 'button';
+			closeBtn.className = 'bbm-suggestion-close';
+			closeBtn.textContent = (data.i18n && data.i18n.suggestionsClose) || 'Close';
+			closeBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+			closeBtn.addEventListener('click', hideSuggestions);
+			footer.appendChild(closeBtn);
+			suggestionEl.appendChild(footer);
+
+			suggestionEl.hidden = false;
+		}
+
 		function runSearch(term) {
 			term = (term || '').trim();
+			updateSuggestion(term);
 			var hasFilter = term !== ''
 				|| selectedCategoryIds.length > 0
 				|| selectedDestinationIds.length > 0;

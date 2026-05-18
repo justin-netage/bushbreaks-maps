@@ -17,13 +17,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 				class="bbm-search-input"
 				placeholder="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
 				aria-label="<?php echo esc_attr( $i18n['searchPlaceholder'] ); ?>"
+				autocomplete="off"
 			/>
+			<div class="bbm-suggestion" role="listbox" hidden></div>
 		</div>
 
 		<div class="bbm-destinations bbm-filter-group" hidden>
 			<div class="bbm-category-dropdown">
 				<button type="button" class="bbm-category-toggle bbm-destination-toggle" aria-expanded="false" aria-haspopup="listbox">
-					<span class="bbm-category-toggle-label bbm-destination-toggle-label"><?php echo esc_html( $i18n['destinationPlaceholder'] ?? 'Filter by Region…' ); ?></span>
+					<span class="bbm-category-toggle-label bbm-destination-toggle-label"><?php echo esc_html( $i18n['destinationPlaceholder'] ?? 'Filter by Region or Reserve…' ); ?></span>
 					<span class="bbm-category-toggle-arrow" aria-hidden="true">&#9662;</span>
 				</button>
 				<div class="bbm-category-panel bbm-destination-panel" role="listbox" aria-multiselectable="true" hidden></div>

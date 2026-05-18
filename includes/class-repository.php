@@ -82,9 +82,9 @@ class Repository {
 	}
 
 	/**
-	 * Build the ID set for a search: title/content matches UNION posts
-	 * tagged with destination terms whose name matches the query UNION
-	 * posts whose Pods location field contains the query.
+	 * Build the ID set for a search: title matches UNION posts tagged
+	 * with destination terms whose name matches the query UNION posts
+	 * whose Pods location field contains the query.
 	 */
 	private static function collect_search_ids( string $term, array $opts, array $base_args, array $category_ids = [], array $destination_ids = [] ): array {
 		$ids = null; // null = no constraint applied yet
@@ -100,7 +100,9 @@ class Repository {
 					$base_args,
 					[
 						'posts_per_page'         => -1,
+						'fields'                 => 'ids',
 						'update_post_term_cache' => true,
+						'update_post_meta_cache' => true,
 					]
 				)
 			);
@@ -108,17 +110,18 @@ class Repository {
 			$dest_taxonomy = (string) ( $opts['destination_taxonomy'] ?? '' );
 			$loc_field     = (string) ( $opts['location_field'] ?? '' );
 
-			$matches = [];
-			foreach ( $post_query->posts as $post ) {
+			$matches    = [];
+			$haystacks  = [];
+			foreach ( $post_query->posts as $post_id ) {
+				$pid = (int) $post_id;
 				$parts = [
-					(string) $post->post_title,
-					wp_strip_all_tags( (string) $post->post_content ),
+					(string) get_the_title( $pid ),
 				];
 				if ( $loc_field !== '' ) {
-					$parts[] = (string) get_post_meta( $post->ID, $loc_field, true );
+					$parts[] = (string) get_post_meta( $pid, $loc_field, true );
 				}
 				if ( $dest_taxonomy !== '' && taxonomy_exists( $dest_taxonomy ) ) {
-					$tlist = get_the_terms( $post->ID, $dest_taxonomy );
+					$tlist = get_the_terms( $pid, $dest_taxonomy );
 					if ( ! is_wp_error( $tlist ) && is_array( $tlist ) ) {
 						foreach ( $tlist as $t ) {
 							$parts[] = (string) $t->name;
@@ -129,6 +132,7 @@ class Repository {
 					implode( ' ', array_filter( $parts, function ( $p ) { return $p !== ''; } ) ),
 					'UTF-8'
 				);
+				$haystacks[ $pid ] = $haystack;
 
 				$all_match = true;
 				foreach ( $tokens as $tok ) {
@@ -138,7 +142,18 @@ class Repository {
 					}
 				}
 				if ( $all_match ) {
-					$matches[] = (int) $post->ID;
+					$matches[] = $pid;
+				}
+			}
+
+			// Fuzzy fallback: if no exact-substring matches, try a Levenshtein
+			// pass so common typos (e.g. "Pilanesbrug" -> "Pilanesberg") still
+			// return results.
+			if ( empty( $matches ) ) {
+				foreach ( $haystacks as $pid => $haystack ) {
+					if ( self::fuzzy_all_tokens_match( $tokens, $haystack ) ) {
+						$matches[] = (int) $pid;
+					}
 				}
 			}
 
@@ -206,6 +221,54 @@ class Repository {
 		}
 
 		return array_values( array_unique( array_map( 'intval', $ids ?: [] ) ) );
+	}
+
+	/**
+	 * True when every token has at least one word in the haystack within
+	 * Levenshtein tolerance. Each token must be 3+ chars to avoid noisy
+	 * matches on prepositions and stop words.
+	 */
+	private static function fuzzy_all_tokens_match( array $tokens, string $haystack ): bool {
+		if ( $haystack === '' ) {
+			return false;
+		}
+		$words = preg_split( '/\s+/u', $haystack, -1, PREG_SPLIT_NO_EMPTY );
+		if ( empty( $words ) ) {
+			return false;
+		}
+		foreach ( $tokens as $tok ) {
+			if ( mb_strlen( $tok, 'UTF-8' ) < 3 ) {
+				return false;
+			}
+			$hit = false;
+			foreach ( $words as $w ) {
+				if ( self::within_distance( $tok, (string) $w ) ) {
+					$hit = true;
+					break;
+				}
+			}
+			if ( ! $hit ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Length-normalized Levenshtein. Tolerates ~30% character difference,
+	 * which catches single-character typos in 4+ character words.
+	 */
+	private static function within_distance( string $a, string $b ): bool {
+		$la = strlen( $a );
+		$lb = strlen( $b );
+		if ( $la === 0 || $lb === 0 || $la > 64 || $lb > 64 ) {
+			return false;
+		}
+		if ( abs( $la - $lb ) > 3 ) {
+			return false;
+		}
+		$dist = levenshtein( $a, $b );
+		return ( $dist / max( $la, $lb ) ) <= 0.3;
 	}
 
 	private static function tokenize_search( string $term ): array {

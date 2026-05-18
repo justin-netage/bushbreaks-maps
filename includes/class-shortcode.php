@@ -248,11 +248,12 @@ class Shortcode {
 					'searching'               => __( 'Searching lodges…', 'bushbreaks-maps' ),
 					'categoryPlaceholder'     => __( 'Filter by category…', 'bushbreaks-maps' ),
 					'removeCategory'          => __( 'Remove filter', 'bushbreaks-maps' ),
-					'destinationPlaceholder'  => __( 'Filter by Region…', 'bushbreaks-maps' ),
-					'removeDestination'       => __( 'Remove region filter', 'bushbreaks-maps' ),
+					'destinationPlaceholder'  => __( 'Filter by Region or Reserve…', 'bushbreaks-maps' ),
+					'removeDestination'       => __( 'Remove region or reserve filter', 'bushbreaks-maps' ),
 					'resultsCountSingle'      => __( '1 lodge', 'bushbreaks-maps' ),
 					'resultsCountPlural'      => __( '%d lodges', 'bushbreaks-maps' ),
 					'clearAll'                => __( 'Clear all', 'bushbreaks-maps' ),
+					'suggestionsClose'        => __( 'Close', 'bushbreaks-maps' ),
 				],
 			]
 		);
@@ -266,7 +267,7 @@ class Shortcode {
 			'viewDetails'            => __( 'View details', 'bushbreaks-maps' ),
 			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
 			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
-			'destinationPlaceholder' => __( 'Filter by Region…', 'bushbreaks-maps' ),
+			'destinationPlaceholder' => __( 'Filter by Region or Reserve…', 'bushbreaks-maps' ),
 			'clearAll'               => __( 'Clear all', 'bushbreaks-maps' ),
 		];
 		include $template;
