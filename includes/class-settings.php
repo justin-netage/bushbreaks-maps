@@ -18,6 +18,7 @@ class Settings {
 			'iframe_field'   => 'google_maps_iframe',
 			'location_field' => 'location',
 			'destination_taxonomy'    => 'destination',
+			'enable_region_filter'    => true,
 			'category_taxonomy'       => 'popular_request',
 			'image_field'         => 'banner',
 			'normal_price_field'      => 'normal_price',
@@ -145,6 +146,8 @@ class Settings {
 			$out['list_limit'] = max( 1, min( 50, (int) $input['list_limit'] ) );
 		}
 
+		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
+
 		foreach ( [ 'marker_icon_url', 'cluster_icon_url' ] as $url_key ) {
 			if ( isset( $input[ $url_key ] ) ) {
 				$out[ $url_key ] = esc_url_raw( (string) $input[ $url_key ] );
@@ -209,6 +212,16 @@ class Settings {
 						<td>
 							<input id="bbm_destination_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[destination_taxonomy]" type="text" value="<?php echo esc_attr( $opts['destination_taxonomy'] ); ?>" class="regular-text">
 							<p class="description"><?php esc_html_e( 'Custom taxonomy used for destinations. Search will match lodges tagged with destinations whose name matches the query.', 'bushbreaks-maps' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Region filter', 'bushbreaks-maps' ); ?></th>
+						<td>
+							<label for="bbm_enable_region_filter">
+								<input id="bbm_enable_region_filter" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[enable_region_filter]" type="checkbox" value="1" <?php checked( ! empty( $opts['enable_region_filter'] ) ); ?>>
+								<?php esc_html_e( 'Show the "Filter by Region…" dropdown on the front-end map', 'bushbreaks-maps' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Uncheck to hide the region dropdown. The taxonomy and term ordering settings stay intact so you can re-enable later.', 'bushbreaks-maps' ); ?></p>
 						</td>
 					</tr>
 					<tr>

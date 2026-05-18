@@ -154,7 +154,8 @@ class Shortcode {
 
 		$destinations  = [];
 		$dest_tax_slug = (string) ( $opts['destination_taxonomy'] ?? '' );
-		if ( $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
+		$region_filter_enabled = ! empty( $opts['enable_region_filter'] );
+		if ( $region_filter_enabled && $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
 			$dest_terms = get_terms(
 				[
 					'taxonomy'   => $dest_tax_slug,
