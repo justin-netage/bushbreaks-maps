@@ -108,7 +108,7 @@
 .bbm-suggestion-option:hover,
 .bbm-suggestion-option:focus,
 .bbm-suggestion-option[aria-selected="true"] {
-	background: #8AD000;
+	background: var(--bbm-primary, #8AD000);
 	color: #fff;
 	outline: none;
 }
@@ -137,7 +137,7 @@
 
 .bbm-suggestion-close:hover,
 .bbm-suggestion-close:focus {
-	color: #3a5b00;
+	color: var(--bbm-primary-deep, #3a5b00);
 	outline: none;
 }
 
@@ -211,7 +211,7 @@
 }
 
 .bbm-category-option input[type="checkbox"] {
-	accent-color: #8AD000;
+	accent-color: var(--bbm-primary, #8AD000);
 	width: 16px;
 	height: 16px;
 	margin: 0;
@@ -308,7 +308,7 @@
 }
 
 .bbm-tree-label input[type="checkbox"] {
-	accent-color: #8AD000;
+	accent-color: var(--bbm-primary, #8AD000);
 	width: 14px;
 	height: 14px;
 	margin: 0;
@@ -319,8 +319,8 @@
 	flex: 0 0 auto;
 	margin-left: auto;
 	padding: 1px 7px;
-	background: rgba(138, 208, 0, 0.18);
-	color: #3a5b00;
+	background: var(--bbm-primary-soft, rgba(138, 208, 0, 0.18));
+	color: var(--bbm-primary-deep, #3a5b00);
 	font-size: 11px;
 	font-weight: 600;
 	line-height: 1.4;
@@ -362,7 +362,7 @@
 	align-items: center;
 	gap: 2px;
 	padding: 2px 2px 2px 8px;
-	background: #8AD000;
+	background: var(--bbm-primary, #8AD000);
 	color: #ffffff;
 	border-radius: 999px;
 	font-size: 10px;
@@ -396,7 +396,7 @@
 .bbm-chip-more {
 	border: 0;
 	cursor: pointer;
-	background: #3a5b00;
+	background: var(--bbm-primary-deep, #3a5b00);
 	padding: 4px 10px;
 	font-family: inherit;
 }
@@ -404,7 +404,7 @@
 .bbm-chip-more:hover,
 .bbm-chip-more:focus,
 .bbm-chip-more[aria-expanded="true"] {
-	background: #2c7a3d;
+	background: var(--bbm-primary-dark, #2c7a3d);
 	outline: none;
 }
 
@@ -498,7 +498,7 @@
 	height: 32px;
 	box-sizing: border-box;
 	border: 3px solid #e3e6ea;
-	border-top-color: #2c7a3d;
+	border-top-color: var(--bbm-primary-dark, #2c7a3d);
 	border-radius: 50%;
 	animation: bbm-spin 0.7s linear infinite;
 }
@@ -575,7 +575,7 @@
 
 .bbm-card:hover,
 .bbm-card.is-active {
-	border-color: #2c7a3d;
+	border-color: var(--bbm-primary-dark, #2c7a3d);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -621,7 +621,7 @@
 
 .bbm-card-link {
 	font-size: 13px;
-	color: #2c7a3d;
+	color: var(--bbm-primary-dark, #2c7a3d);
 	text-decoration: none;
 	margin-top: auto;
 }
@@ -646,7 +646,7 @@
 }
 
 .bbm-price-special {
-	color: #2c7a3d;
+	color: var(--bbm-primary-dark, #2c7a3d);
 }
 
 .bbm-price-was {
@@ -661,8 +661,8 @@
 }
 
 .bbm-price-discount {
-	background: rgba(138, 208, 0, 0.18);
-	color: #3a5b00;
+	background: var(--bbm-primary-soft, rgba(138, 208, 0, 0.18));
+	color: var(--bbm-primary-deep, #3a5b00);
 	font-weight: 600;
 	font-size: 11px;
 	padding: 1px 6px;
@@ -715,7 +715,7 @@
 	display: inline-block;
 	margin-top: 6px;
 	font-size: 13px;
-	color: #2c7a3d;
+	color: var(--bbm-primary-dark, #2c7a3d);
 	text-decoration: none;
 }
 

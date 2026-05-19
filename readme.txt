@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.5
+Stable tag: 0.9.6
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.6 =
+* New "Primary color" setting in Settings → Bushbreaks Maps. Pick any hex colour and the chips, special-price text, discount pill, "View details" link, loader spinner, suggestion hover, "+N more" pill, card hover border and checkbox accent all rebrand to it. Darker/softer shades for text and tinted backgrounds are derived automatically from the chosen colour.
 
 = 0.9.5 =
 * Clicking a search suggestion now closes the dropdown for good. Previously the dropdown re-opened because runSearch re-ran the suggestion match against the just-picked term; the suggestion-click path now skips that re-render.
