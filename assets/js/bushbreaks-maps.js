@@ -988,7 +988,16 @@
 					if (items.length === 0) {
 						renderResults(items);
 						showResults();
-						showAllMarkers();
+						var hasChips = selectedCategoryIds.length > 0 || selectedDestinationIds.length > 0;
+						if (hasChips) {
+							// Active chips narrowed to zero results with this term;
+							// keep the map mirroring that empty intersect rather than
+							// reverting to every pin (which makes search + filter look
+							// like a union).
+							showOnlyMarkers([]);
+						} else {
+							showAllMarkers();
+						}
 						return;
 					}
 					var ids = items.map(function (i) { return i.id; });
