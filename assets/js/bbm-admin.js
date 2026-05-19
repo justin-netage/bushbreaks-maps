@@ -30,6 +30,39 @@
 
 	var cfg = window.BushbreaksMapsAdmin || null;
 
+	// Tab switcher for the settings page
+	(function () {
+		var tabs = document.querySelectorAll('.bbm-tabs .nav-tab');
+		var panes = document.querySelectorAll('.bbm-tab-content');
+		var submitRow = document.querySelector('.bbm-settings-form .bbm-submit-row');
+		if (!tabs.length || !panes.length) return;
+
+		function activate(name) {
+			tabs.forEach(function (t) {
+				t.classList.toggle('nav-tab-active', t.getAttribute('data-tab') === name);
+			});
+			panes.forEach(function (p) {
+				p.classList.toggle('is-active', p.getAttribute('data-tab') === name);
+			});
+			if (submitRow) submitRow.style.display = (name === 'tools') ? 'none' : '';
+			if (window.history && history.replaceState) {
+				history.replaceState(null, '', '#' + name);
+			}
+		}
+
+		tabs.forEach(function (t) {
+			t.addEventListener('click', function (e) {
+				e.preventDefault();
+				activate(t.getAttribute('data-tab'));
+			});
+		});
+
+		var initial = (location.hash || '').replace('#', '');
+		if (initial && document.querySelector('.bbm-tabs .nav-tab[data-tab="' + initial + '"]')) {
+			activate(initial);
+		}
+	})();
+
 	// Drag-and-drop category ordering
 	if (cfg && typeof window.jQuery !== 'undefined' && typeof jQuery.fn.sortable === 'function') {
 		var $list = jQuery('#bbm-category-order-list');

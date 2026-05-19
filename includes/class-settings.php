@@ -33,6 +33,7 @@ class Settings {
 			'map_center_lng' => 31.0498,
 			'map_zoom'       => 6,
 			'list_limit'     => 10,
+			'list_heading_label'  => 'Lodges',
 			'marker_icon_url'    => '',
 			'marker_icon_width'  => 32,
 			'marker_icon_height' => 40,
@@ -127,7 +128,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -177,267 +178,316 @@ class Settings {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$opts = self::all();
+		$opts        = self::all();
+		$option_attr = esc_attr( self::OPTION_KEY );
 		?>
-		<div class="wrap">
+		<style>
+			.bbm-tab-content { display: none; }
+			.bbm-tab-content.is-active { display: block; }
+			.bbm-settings-page .bbm-submit-row { margin-top: 12px; }
+		</style>
+		<div class="wrap bbm-settings-page">
 			<h1><?php esc_html_e( 'Bushbreaks Maps', 'bushbreaks-maps' ); ?></h1>
-			<p><?php esc_html_e( 'Use the [bushbreaks_map] shortcode to embed the map. Configure the Pods post type and field names below.', 'bushbreaks-maps' ); ?></p>
-			<form method="post" action="options.php">
+			<p><?php esc_html_e( 'Use the [bushbreaks_map] shortcode to embed the map. Choose a tab to jump between groups of settings.', 'bushbreaks-maps' ); ?></p>
+
+			<h2 class="nav-tab-wrapper bbm-tabs">
+				<a href="#general"  class="nav-tab nav-tab-active" data-tab="general"><?php esc_html_e( 'General', 'bushbreaks-maps' ); ?></a>
+				<a href="#fields"   class="nav-tab"                 data-tab="fields"><?php esc_html_e( 'Field mapping', 'bushbreaks-maps' ); ?></a>
+				<a href="#pricing"  class="nav-tab"                 data-tab="pricing"><?php esc_html_e( 'Pricing', 'bushbreaks-maps' ); ?></a>
+				<a href="#filters"  class="nav-tab"                 data-tab="filters"><?php esc_html_e( 'Filters', 'bushbreaks-maps' ); ?></a>
+				<a href="#map"      class="nav-tab"                 data-tab="map"><?php esc_html_e( 'Map &amp; Theme', 'bushbreaks-maps' ); ?></a>
+				<a href="#tools"    class="nav-tab"                 data-tab="tools"><?php esc_html_e( 'Tools', 'bushbreaks-maps' ); ?></a>
+			</h2>
+
+			<form method="post" action="options.php" class="bbm-settings-form">
 				<?php settings_fields( 'bushbreaks_maps' ); ?>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th><label for="bbm_post_type"><?php esc_html_e( 'Pod / Post Type slug', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_post_type" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[post_type]" type="text" value="<?php echo esc_attr( $opts['post_type'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_lat"><?php esc_html_e( 'Latitude field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_lat" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[lat_field]" type="text" value="<?php echo esc_attr( $opts['lat_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_lng"><?php esc_html_e( 'Longitude field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_lng" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[lng_field]" type="text" value="<?php echo esc_attr( $opts['lng_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_address"><?php esc_html_e( 'Address field (shown on cards)', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_address" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[address_field]" type="text" value="<?php echo esc_attr( $opts['address_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_iframe"><?php esc_html_e( 'Google Maps iframe field', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_iframe" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[iframe_field]" type="text" value="<?php echo esc_attr( $opts['iframe_field'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'When set, lat/lng are extracted from the iframe on save (preferred source).', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_location"><?php esc_html_e( 'Location text field (geocoded)', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_location" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[location_field]" type="text" value="<?php echo esc_attr( $opts['location_field'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Used as a fallback when no iframe is set. Geocoded via OpenStreetMap Nominatim and cached.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_destination_tax"><?php esc_html_e( 'Destination taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_destination_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[destination_taxonomy]" type="text" value="<?php echo esc_attr( $opts['destination_taxonomy'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Custom taxonomy used for destinations. Search will match lodges tagged with destinations whose name matches the query.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><?php esc_html_e( 'Region filter', 'bushbreaks-maps' ); ?></th>
-						<td>
-							<label for="bbm_enable_region_filter">
-								<input id="bbm_enable_region_filter" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[enable_region_filter]" type="checkbox" value="1" <?php checked( ! empty( $opts['enable_region_filter'] ) ); ?>>
-								<?php esc_html_e( 'Show the "Filter by Region…" dropdown on the front-end map', 'bushbreaks-maps' ); ?>
-							</label>
-							<p class="description"><?php esc_html_e( 'Uncheck to hide the region dropdown. The taxonomy and term ordering settings stay intact so you can re-enable later.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_category_tax"><?php esc_html_e( 'Category taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_category_tax" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[category_taxonomy]" type="text" value="<?php echo esc_attr( $opts['category_taxonomy'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Taxonomy whose terms appear in the front-end filter dropdown beneath the search bar (e.g. popular_request).', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_image"><?php esc_html_e( 'Image field (Pods)', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_image" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[image_field]" type="text" value="<?php echo esc_attr( $opts['image_field'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Pods image/file field used as the card thumbnail. Falls back to the WordPress featured image when empty.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_thumb"><?php esc_html_e( 'Thumbnail size', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_thumb" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[thumbnail_size]" type="text" value="<?php echo esc_attr( $opts['thumbnail_size'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_normal_price"><?php esc_html_e( 'Normal price field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_normal_price" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[normal_price_field]" type="text" value="<?php echo esc_attr( $opts['normal_price_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_special_price"><?php esc_html_e( 'Special price field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_special_price" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[special_price_field]" type="text" value="<?php echo esc_attr( $opts['special_price_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_price_desc"><?php esc_html_e( 'Price description field', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_price_desc" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[price_description_field]" type="text" value="<?php echo esc_attr( $opts['price_description_field'] ); ?>" class="regular-text">
-							<p class="description"><?php esc_html_e( 'Short unit shown next to the price (e.g. ppn, pn, ppp).', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_valid_from"><?php esc_html_e( 'Special valid-from field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_valid_from" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[valid_from_field]" type="text" value="<?php echo esc_attr( $opts['valid_from_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_valid_until"><?php esc_html_e( 'Special valid-until field', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_valid_until" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[valid_until_field]" type="text" value="<?php echo esc_attr( $opts['valid_until_field'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_currency"><?php esc_html_e( 'Currency symbol', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_currency" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[currency_symbol]" type="text" value="<?php echo esc_attr( $opts['currency_symbol'] ); ?>" class="small-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_primary_color"><?php esc_html_e( 'Primary color', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_primary_color" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[primary_color]" type="color" value="<?php echo esc_attr( $opts['primary_color'] ); ?>" style="width:60px;height:34px;padding:0;border:1px solid #cfd4da;border-radius:6px;background:transparent;cursor:pointer;">
-							<p class="description"><?php esc_html_e( 'Accent colour used across chips, special-price text, discount pills, links and the loader spinner. Derived darker/lighter shades follow your choice.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_clat"><?php esc_html_e( 'Default map centre latitude', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_clat" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[map_center_lat]" type="number" step="any" value="<?php echo esc_attr( (string) $opts['map_center_lat'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_clng"><?php esc_html_e( 'Default map centre longitude', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_clng" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[map_center_lng]" type="number" step="any" value="<?php echo esc_attr( (string) $opts['map_center_lng'] ); ?>" class="regular-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_zoom"><?php esc_html_e( 'Default zoom (1-19)', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_zoom" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[map_zoom]" type="number" min="1" max="19" value="<?php echo esc_attr( (string) $opts['map_zoom'] ); ?>" class="small-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_list_limit"><?php esc_html_e( 'List limit', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_list_limit" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[list_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['list_limit'] ); ?>" class="small-text"></td>
-					</tr>
-					<tr><th colspan="2"><h2 style="margin:8px 0 0"><?php esc_html_e( 'Custom markers', 'bushbreaks-maps' ); ?></h2></th></tr>
-					<tr>
-						<th><label for="bbm_marker_url"><?php esc_html_e( 'Lodge marker image', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_marker_url" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_url]" type="text" value="<?php echo esc_attr( $opts['marker_icon_url'] ); ?>" class="large-text" autocomplete="off">
-							<button type="button" class="button bbm-media-picker"
-								data-target="bbm_marker_url"
-								data-width-target="bbm_marker_width"
-								data-height-target="bbm_marker_height"
-								data-title="<?php echo esc_attr__( 'Choose lodge marker', 'bushbreaks-maps' ); ?>">
-								<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
-							</button>
-							<p class="description"><?php esc_html_e( 'Leave empty to use the default pin.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_marker_width"><?php esc_html_e( 'Marker size (px)', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_marker_width" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_width]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_width'] ); ?>" style="width:90px"> &times;
-							<input id="bbm_marker_height" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[marker_icon_height]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_height'] ); ?>" style="width:90px">
-							<p class="description"><?php esc_html_e( 'Width × height. Filled in automatically when you pick from the media library.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_cluster_url"><?php esc_html_e( 'Cluster icon', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_cluster_url" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[cluster_icon_url]" type="text" value="<?php echo esc_attr( $opts['cluster_icon_url'] ); ?>" class="large-text" autocomplete="off">
-							<button type="button" class="button bbm-media-picker"
-								data-target="bbm_cluster_url"
-								data-title="<?php echo esc_attr__( 'Choose cluster icon', 'bushbreaks-maps' ); ?>">
-								<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
-							</button>
-							<p class="description"><?php esc_html_e( 'Leave empty to use the default cluster style. The lodge count is drawn on top.', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_cluster_size"><?php esc_html_e( 'Cluster size (px)', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_cluster_size" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[cluster_icon_size]" type="number" min="16" max="200" value="<?php echo esc_attr( (string) $opts['cluster_icon_size'] ); ?>" style="width:90px">
-						</td>
-					</tr>
-					<tr><th colspan="2"><h2 style="margin:8px 0 0"><?php esc_html_e( 'Map provider', 'bushbreaks-maps' ); ?></h2></th></tr>
-					<tr>
-						<th><label for="bbm_gmaps_key"><?php esc_html_e( 'Google Maps API key', 'bushbreaks-maps' ); ?></label></th>
-						<td>
-							<input id="bbm_gmaps_key" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[google_maps_api_key]" type="password" value="<?php echo esc_attr( $opts['google_maps_api_key'] ); ?>" class="large-text" autocomplete="off" spellcheck="false">
-							<p class="description"><?php esc_html_e( 'When set, the front-end map switches to Google Maps. Leave empty to use OpenStreetMap (Leaflet).', 'bushbreaks-maps' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="bbm_tile"><?php esc_html_e( 'Leaflet tile URL', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_tile" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[tile_url]" type="text" value="<?php echo esc_attr( $opts['tile_url'] ); ?>" class="large-text"></td>
-					</tr>
-					<tr>
-						<th><label for="bbm_tile_attr"><?php esc_html_e( 'Tile attribution', 'bushbreaks-maps' ); ?></label></th>
-						<td><input id="bbm_tile_attr" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[tile_attr]" type="text" value="<?php echo esc_attr( $opts['tile_attr'] ); ?>" class="large-text"></td>
-					</tr>
-				</table>
-				<?php submit_button(); ?>
+
+				<div class="bbm-tab-content is-active" data-tab="general">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="bbm_post_type"><?php esc_html_e( 'Pod / Post Type slug', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_post_type" name="<?php echo $option_attr; ?>[post_type]" type="text" value="<?php echo esc_attr( $opts['post_type'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_list_heading"><?php esc_html_e( 'List heading label', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_list_heading" name="<?php echo $option_attr; ?>[list_heading_label]" type="text" value="<?php echo esc_attr( $opts['list_heading_label'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Heading shown above the lodge list on the front end (e.g. "Lodges", "Accommodations").', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_list_limit"><?php esc_html_e( 'List limit', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_list_limit" name="<?php echo $option_attr; ?>[list_limit]" type="number" min="1" max="50" value="<?php echo esc_attr( (string) $opts['list_limit'] ); ?>" class="small-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_clat"><?php esc_html_e( 'Default map centre latitude', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_clat" name="<?php echo $option_attr; ?>[map_center_lat]" type="number" step="any" value="<?php echo esc_attr( (string) $opts['map_center_lat'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_clng"><?php esc_html_e( 'Default map centre longitude', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_clng" name="<?php echo $option_attr; ?>[map_center_lng]" type="number" step="any" value="<?php echo esc_attr( (string) $opts['map_center_lng'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_zoom"><?php esc_html_e( 'Default zoom (1-19)', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_zoom" name="<?php echo $option_attr; ?>[map_zoom]" type="number" min="1" max="19" value="<?php echo esc_attr( (string) $opts['map_zoom'] ); ?>" class="small-text"></td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="bbm-tab-content" data-tab="fields">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="bbm_lat"><?php esc_html_e( 'Latitude field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_lat" name="<?php echo $option_attr; ?>[lat_field]" type="text" value="<?php echo esc_attr( $opts['lat_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_lng"><?php esc_html_e( 'Longitude field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_lng" name="<?php echo $option_attr; ?>[lng_field]" type="text" value="<?php echo esc_attr( $opts['lng_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_address"><?php esc_html_e( 'Address field (shown on cards)', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_address" name="<?php echo $option_attr; ?>[address_field]" type="text" value="<?php echo esc_attr( $opts['address_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_iframe"><?php esc_html_e( 'Google Maps iframe field', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_iframe" name="<?php echo $option_attr; ?>[iframe_field]" type="text" value="<?php echo esc_attr( $opts['iframe_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'When set, lat/lng are extracted from the iframe on save (preferred source).', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_location"><?php esc_html_e( 'Location text field (geocoded)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_location" name="<?php echo $option_attr; ?>[location_field]" type="text" value="<?php echo esc_attr( $opts['location_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Used as a fallback when no iframe is set. Geocoded via OpenStreetMap Nominatim and cached.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_image"><?php esc_html_e( 'Image field (Pods)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_image" name="<?php echo $option_attr; ?>[image_field]" type="text" value="<?php echo esc_attr( $opts['image_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods image/file field used as the card thumbnail. Falls back to the WordPress featured image when empty.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_thumb"><?php esc_html_e( 'Thumbnail size', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_thumb" name="<?php echo $option_attr; ?>[thumbnail_size]" type="text" value="<?php echo esc_attr( $opts['thumbnail_size'] ); ?>" class="regular-text"></td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="bbm-tab-content" data-tab="pricing">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="bbm_normal_price"><?php esc_html_e( 'Normal price field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_normal_price" name="<?php echo $option_attr; ?>[normal_price_field]" type="text" value="<?php echo esc_attr( $opts['normal_price_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_special_price"><?php esc_html_e( 'Special price field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_special_price" name="<?php echo $option_attr; ?>[special_price_field]" type="text" value="<?php echo esc_attr( $opts['special_price_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_price_desc"><?php esc_html_e( 'Price description field', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_price_desc" name="<?php echo $option_attr; ?>[price_description_field]" type="text" value="<?php echo esc_attr( $opts['price_description_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Short unit shown next to the price (e.g. ppn, pn, ppp).', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_valid_from"><?php esc_html_e( 'Special valid-from field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_valid_from" name="<?php echo $option_attr; ?>[valid_from_field]" type="text" value="<?php echo esc_attr( $opts['valid_from_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_valid_until"><?php esc_html_e( 'Special valid-until field', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_valid_until" name="<?php echo $option_attr; ?>[valid_until_field]" type="text" value="<?php echo esc_attr( $opts['valid_until_field'] ); ?>" class="regular-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_currency"><?php esc_html_e( 'Currency symbol', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_currency" name="<?php echo $option_attr; ?>[currency_symbol]" type="text" value="<?php echo esc_attr( $opts['currency_symbol'] ); ?>" class="small-text"></td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="bbm-tab-content" data-tab="filters">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="bbm_destination_tax"><?php esc_html_e( 'Destination taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_destination_tax" name="<?php echo $option_attr; ?>[destination_taxonomy]" type="text" value="<?php echo esc_attr( $opts['destination_taxonomy'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Custom taxonomy used for destinations. Search will match lodges tagged with destinations whose name matches the query.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Region filter', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<label for="bbm_enable_region_filter">
+									<input id="bbm_enable_region_filter" name="<?php echo $option_attr; ?>[enable_region_filter]" type="checkbox" value="1" <?php checked( ! empty( $opts['enable_region_filter'] ) ); ?>>
+									<?php esc_html_e( 'Show the "Filter by Region…" dropdown on the front-end map', 'bushbreaks-maps' ); ?>
+								</label>
+								<p class="description"><?php esc_html_e( 'Uncheck to hide the region dropdown. The taxonomy and term ordering settings stay intact so you can re-enable later.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_category_tax"><?php esc_html_e( 'Category taxonomy slug', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_category_tax" name="<?php echo $option_attr; ?>[category_taxonomy]" type="text" value="<?php echo esc_attr( $opts['category_taxonomy'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Taxonomy whose terms appear in the front-end filter dropdown beneath the search bar (e.g. popular_request).', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="bbm-tab-content" data-tab="map">
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><label for="bbm_primary_color"><?php esc_html_e( 'Primary color', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_primary_color" name="<?php echo $option_attr; ?>[primary_color]" type="color" value="<?php echo esc_attr( $opts['primary_color'] ); ?>" style="width:60px;height:34px;padding:0;border:1px solid #cfd4da;border-radius:6px;background:transparent;cursor:pointer;">
+								<p class="description"><?php esc_html_e( 'Accent colour used across chips, special-price text, discount pills, links and the loader spinner. Derived darker/lighter shades follow your choice.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr><th colspan="2"><h3 style="margin:8px 0 0"><?php esc_html_e( 'Custom markers', 'bushbreaks-maps' ); ?></h3></th></tr>
+						<tr>
+							<th><label for="bbm_marker_url"><?php esc_html_e( 'Lodge marker image', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_marker_url" name="<?php echo $option_attr; ?>[marker_icon_url]" type="text" value="<?php echo esc_attr( $opts['marker_icon_url'] ); ?>" class="large-text" autocomplete="off">
+								<button type="button" class="button bbm-media-picker"
+									data-target="bbm_marker_url"
+									data-width-target="bbm_marker_width"
+									data-height-target="bbm_marker_height"
+									data-title="<?php echo esc_attr__( 'Choose lodge marker', 'bushbreaks-maps' ); ?>">
+									<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
+								</button>
+								<p class="description"><?php esc_html_e( 'Leave empty to use the default pin.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_marker_width"><?php esc_html_e( 'Marker size (px)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_marker_width" name="<?php echo $option_attr; ?>[marker_icon_width]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_width'] ); ?>" style="width:90px"> &times;
+								<input id="bbm_marker_height" name="<?php echo $option_attr; ?>[marker_icon_height]" type="number" min="8" max="256" value="<?php echo esc_attr( (string) $opts['marker_icon_height'] ); ?>" style="width:90px">
+								<p class="description"><?php esc_html_e( 'Width × height. Filled in automatically when you pick from the media library.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_cluster_url"><?php esc_html_e( 'Cluster icon', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_cluster_url" name="<?php echo $option_attr; ?>[cluster_icon_url]" type="text" value="<?php echo esc_attr( $opts['cluster_icon_url'] ); ?>" class="large-text" autocomplete="off">
+								<button type="button" class="button bbm-media-picker"
+									data-target="bbm_cluster_url"
+									data-title="<?php echo esc_attr__( 'Choose cluster icon', 'bushbreaks-maps' ); ?>">
+									<?php esc_html_e( 'Choose from Media Library', 'bushbreaks-maps' ); ?>
+								</button>
+								<p class="description"><?php esc_html_e( 'Leave empty to use the default cluster style. The lodge count is drawn on top.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_cluster_size"><?php esc_html_e( 'Cluster size (px)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_cluster_size" name="<?php echo $option_attr; ?>[cluster_icon_size]" type="number" min="16" max="200" value="<?php echo esc_attr( (string) $opts['cluster_icon_size'] ); ?>" style="width:90px">
+							</td>
+						</tr>
+						<tr><th colspan="2"><h3 style="margin:8px 0 0"><?php esc_html_e( 'Map provider', 'bushbreaks-maps' ); ?></h3></th></tr>
+						<tr>
+							<th><label for="bbm_gmaps_key"><?php esc_html_e( 'Google Maps API key', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_gmaps_key" name="<?php echo $option_attr; ?>[google_maps_api_key]" type="password" value="<?php echo esc_attr( $opts['google_maps_api_key'] ); ?>" class="large-text" autocomplete="off" spellcheck="false">
+								<p class="description"><?php esc_html_e( 'When set, the front-end map switches to Google Maps. Leave empty to use OpenStreetMap (Leaflet).', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_tile"><?php esc_html_e( 'Leaflet tile URL', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_tile" name="<?php echo $option_attr; ?>[tile_url]" type="text" value="<?php echo esc_attr( $opts['tile_url'] ); ?>" class="large-text"></td>
+						</tr>
+						<tr>
+							<th><label for="bbm_tile_attr"><?php esc_html_e( 'Tile attribution', 'bushbreaks-maps' ); ?></label></th>
+							<td><input id="bbm_tile_attr" name="<?php echo $option_attr; ?>[tile_attr]" type="text" value="<?php echo esc_attr( $opts['tile_attr'] ); ?>" class="large-text"></td>
+						</tr>
+					</table>
+				</div>
+
+				<p class="submit bbm-submit-row">
+					<?php submit_button( null, 'primary', 'submit', false ); ?>
+				</p>
 			</form>
 
-			<hr />
+			<div class="bbm-tab-content" data-tab="tools">
+				<h2><?php esc_html_e( 'Backfill coordinates', 'bushbreaks-maps' ); ?></h2>
+				<p><?php esc_html_e( 'Resolve coordinates for every accommodation: iframe first, then geocode the location text. Already-cached entries are skipped.', 'bushbreaks-maps' ); ?></p>
+				<p>
+					<button type="button" class="button button-primary" id="bbm-backfill"><?php esc_html_e( 'Run backfill', 'bushbreaks-maps' ); ?></button>
+					<span id="bbm-backfill-status" style="margin-left:10px;"></span>
+				</p>
 
-			<h2><?php esc_html_e( 'Backfill coordinates', 'bushbreaks-maps' ); ?></h2>
-			<p><?php esc_html_e( 'Resolve coordinates for every accommodation: iframe first, then geocode the location text. Already-cached entries are skipped.', 'bushbreaks-maps' ); ?></p>
-			<p>
-				<button type="button" class="button button-primary" id="bbm-backfill"><?php esc_html_e( 'Run backfill', 'bushbreaks-maps' ); ?></button>
-				<span id="bbm-backfill-status" style="margin-left:10px;"></span>
-			</p>
-
-			<?php
-			$missing       = Repository::find_missing_coords();
-			$missing_count = count( $missing );
-			?>
-			<details class="bbm-collapsible">
-				<summary>
-					<?php
-					if ( $missing_count === 0 ) {
-						esc_html_e( 'Accommodations missing coordinates (0)', 'bushbreaks-maps' );
-					} else {
-						printf(
-							/* translators: %d: number of accommodations missing coordinates */
-							esc_html( _n( 'Accommodations missing coordinates (%d)', 'Accommodations missing coordinates (%d)', $missing_count, 'bushbreaks-maps' ) ),
-							(int) $missing_count
-						);
-					}
-					?>
-				</summary>
-				<div class="bbm-collapsible-body">
-					<?php if ( $missing_count === 0 ) : ?>
-						<p><?php esc_html_e( 'All accommodations have usable coordinates.', 'bushbreaks-maps' ); ?></p>
-					<?php else : ?>
-						<p>
-							<?php
+				<?php
+				$missing       = Repository::find_missing_coords();
+				$missing_count = count( $missing );
+				?>
+				<details class="bbm-collapsible">
+					<summary>
+						<?php
+						if ( $missing_count === 0 ) {
+							esc_html_e( 'Accommodations missing coordinates (0)', 'bushbreaks-maps' );
+						} else {
 							printf(
 								/* translators: %d: number of accommodations missing coordinates */
-								esc_html( _n( '%d accommodation has no usable lat/lng and is hidden from the map.', '%d accommodations have no usable lat/lng and are hidden from the map.', $missing_count, 'bushbreaks-maps' ) ),
+								esc_html( _n( 'Accommodations missing coordinates (%d)', 'Accommodations missing coordinates (%d)', $missing_count, 'bushbreaks-maps' ) ),
 								(int) $missing_count
 							);
-							?>
-						</p>
-						<table class="widefat striped" style="max-width:720px;">
-							<thead>
-								<tr>
-									<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
-									<th><?php esc_html_e( 'Last sync status', 'bushbreaks-maps' ); ?></th>
-									<th></th>
-								</tr>
-							</thead>
-							<tbody>
-								<?php foreach ( $missing as $m ) : ?>
+						}
+						?>
+					</summary>
+					<div class="bbm-collapsible-body">
+						<?php if ( $missing_count === 0 ) : ?>
+							<p><?php esc_html_e( 'All accommodations have usable coordinates.', 'bushbreaks-maps' ); ?></p>
+						<?php else : ?>
+							<p>
+								<?php
+								printf(
+									/* translators: %d: number of accommodations missing coordinates */
+									esc_html( _n( '%d accommodation has no usable lat/lng and is hidden from the map.', '%d accommodations have no usable lat/lng and are hidden from the map.', $missing_count, 'bushbreaks-maps' ) ),
+									(int) $missing_count
+								);
+								?>
+							</p>
+							<table class="widefat striped" style="max-width:720px;">
+								<thead>
 									<tr>
-										<td><?php echo esc_html( $m['title'] ); ?></td>
-										<td><code><?php echo esc_html( $m['status'] !== '' ? $m['status'] : 'never processed' ); ?></code></td>
-										<td>
-											<?php if ( $m['edit_link'] ) : ?>
-												<a href="<?php echo esc_url( $m['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
-											<?php endif; ?>
-										</td>
+										<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
+										<th><?php esc_html_e( 'Last sync status', 'bushbreaks-maps' ); ?></th>
+										<th></th>
 									</tr>
-								<?php endforeach; ?>
-							</tbody>
-						</table>
-					<?php endif; ?>
-				</div>
-			</details>
+								</thead>
+								<tbody>
+									<?php foreach ( $missing as $m ) : ?>
+										<tr>
+											<td><?php echo esc_html( $m['title'] ); ?></td>
+											<td><code><?php echo esc_html( $m['status'] !== '' ? $m['status'] : 'never processed' ); ?></code></td>
+											<td>
+												<?php if ( $m['edit_link'] ) : ?>
+													<a href="<?php echo esc_url( $m['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
+												<?php endif; ?>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						<?php endif; ?>
+					</div>
+				</details>
 
-			<hr />
+				<hr />
 
-			<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
-			<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
-			<?php $this->render_category_order_list( $opts ); ?>
+				<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
+				<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
+				<?php $this->render_category_order_list( $opts ); ?>
 
-			<hr />
+				<hr />
 
-			<h2><?php esc_html_e( 'Region order', 'bushbreaks-maps' ); ?></h2>
-			<p><?php esc_html_e( 'Drag to reorder regions and their child reserves. Each list can be reordered independently; to move a reserve between regions, change its parent on the WordPress term edit page.', 'bushbreaks-maps' ); ?></p>
-			<?php $this->render_destination_order_list( $opts ); ?>
+				<h2><?php esc_html_e( 'Region order', 'bushbreaks-maps' ); ?></h2>
+				<p><?php esc_html_e( 'Drag to reorder regions and their child reserves. Each list can be reordered independently; to move a reserve between regions, change its parent on the WordPress term edit page.', 'bushbreaks-maps' ); ?></p>
+				<?php $this->render_destination_order_list( $opts ); ?>
+			</div>
 		</div>
 		<?php
 	}
