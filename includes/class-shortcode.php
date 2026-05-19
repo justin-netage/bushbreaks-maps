@@ -253,7 +253,7 @@ class Shortcode {
 				'enableRegionFilter'  => $region_filter_enabled ? 'yes' : 'no',
 				'i18n'      => [
 					'searchPlaceholder'       => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-					'listHeading'             => __( 'Lodges', 'bushbreaks-maps' ),
+					'listHeading'             => (string) ( $opts['list_heading_label'] ?? __( 'Lodges', 'bushbreaks-maps' ) ),
 					'noResults'               => __( 'No lodges match your search.', 'bushbreaks-maps' ),
 					'viewDetails'             => __( 'View details', 'bushbreaks-maps' ),
 					'searching'               => __( 'Searching lodges…', 'bushbreaks-maps' ),
@@ -274,7 +274,7 @@ class Shortcode {
 		$height   = $atts['height'];
 		$i18n     = [
 			'searchPlaceholder'      => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
-			'listHeading'            => __( 'Lodges', 'bushbreaks-maps' ),
+			'listHeading'            => (string) ( $opts['list_heading_label'] ?? __( 'Lodges', 'bushbreaks-maps' ) ),
 			'viewDetails'            => __( 'View details', 'bushbreaks-maps' ),
 			'searching'              => __( 'Searching lodges…', 'bushbreaks-maps' ),
 			'categoryPlaceholder'    => __( 'Filter by category…', 'bushbreaks-maps' ),
