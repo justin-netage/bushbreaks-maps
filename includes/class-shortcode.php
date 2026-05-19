@@ -155,7 +155,7 @@ class Shortcode {
 		$destinations  = [];
 		$dest_tax_slug = (string) ( $opts['destination_taxonomy'] ?? '' );
 		$region_filter_enabled = ! empty( $opts['enable_region_filter'] );
-		if ( $region_filter_enabled && $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
+		if ( $dest_tax_slug !== '' && taxonomy_exists( $dest_tax_slug ) ) {
 			$dest_terms = get_terms(
 				[
 					'taxonomy'   => $dest_tax_slug,
@@ -239,7 +239,8 @@ class Shortcode {
 					],
 				],
 				'categories'   => $categories,
-				'destinations' => $destinations,
+				'destinations'        => $destinations,
+				'enableRegionFilter'  => (bool) $region_filter_enabled,
 				'i18n'      => [
 					'searchPlaceholder'       => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
 					'listHeading'             => __( 'Lodges', 'bushbreaks-maps' ),

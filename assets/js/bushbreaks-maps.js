@@ -138,14 +138,16 @@
 			setSelected: function (next) { selectedCategoryIds = next; },
 		});
 
-		var destinationFilter = initFilter({
-			wrapperSelector: '.bbm-destinations',
-			items: data.destinations || [],
-			placeholder: data.i18n.destinationPlaceholder || 'Filter by destination…',
-			removeLabel: data.i18n.removeDestination || 'Remove',
-			selectedRef: function () { return selectedDestinationIds; },
-			setSelected: function (next) { selectedDestinationIds = next; },
-		});
+		var destinationFilter = (data.enableRegionFilter === false)
+			? { renderChips: function () {}, updateLabel: function () {}, reset: function () {} }
+			: initFilter({
+				wrapperSelector: '.bbm-destinations',
+				items: data.destinations || [],
+				placeholder: data.i18n.destinationPlaceholder || 'Filter by destination…',
+				removeLabel: data.i18n.removeDestination || 'Remove',
+				selectedRef: function () { return selectedDestinationIds; },
+				setSelected: function (next) { selectedDestinationIds = next; },
+			});
 
 		function initFilter(opts) {
 			var groupEl = wrap ? wrap.querySelector(opts.wrapperSelector) : null;
