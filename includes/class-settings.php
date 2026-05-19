@@ -355,20 +355,6 @@ class Settings {
 				<span id="bbm-backfill-status" style="margin-left:10px;"></span>
 			</p>
 
-			<hr />
-
-			<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
-			<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
-			<?php $this->render_category_order_list( $opts ); ?>
-
-			<hr />
-
-			<h2><?php esc_html_e( 'Region order', 'bushbreaks-maps' ); ?></h2>
-			<p><?php esc_html_e( 'Drag to reorder regions and their child reserves. Each list can be reordered independently; to move a reserve between regions, change its parent on the WordPress term edit page.', 'bushbreaks-maps' ); ?></p>
-			<?php $this->render_destination_order_list( $opts ); ?>
-
-			<hr />
-
 			<?php
 			$missing       = Repository::find_missing_coords();
 			$missing_count = count( $missing );
@@ -425,6 +411,18 @@ class Settings {
 					<?php endif; ?>
 				</div>
 			</details>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
+			<p><?php esc_html_e( 'Drag to reorder the categories that appear in the front-end filter dropdown. New categories added later appear at the end until reordered.', 'bushbreaks-maps' ); ?></p>
+			<?php $this->render_category_order_list( $opts ); ?>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Region order', 'bushbreaks-maps' ); ?></h2>
+			<p><?php esc_html_e( 'Drag to reorder regions and their child reserves. Each list can be reordered independently; to move a reserve between regions, change its parent on the WordPress term edit page.', 'bushbreaks-maps' ); ?></p>
+			<?php $this->render_destination_order_list( $opts ); ?>
 		</div>
 		<?php
 	}
