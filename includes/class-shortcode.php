@@ -240,7 +240,7 @@ class Shortcode {
 				],
 				'categories'   => $categories,
 				'destinations'        => $destinations,
-				'enableRegionFilter'  => (bool) $region_filter_enabled,
+				'enableRegionFilter'  => $region_filter_enabled ? 'yes' : 'no',
 				'i18n'      => [
 					'searchPlaceholder'       => __( 'Search lodges, towns, regions…', 'bushbreaks-maps' ),
 					'listHeading'             => __( 'Lodges', 'bushbreaks-maps' ),

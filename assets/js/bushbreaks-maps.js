@@ -138,7 +138,7 @@
 			setSelected: function (next) { selectedCategoryIds = next; },
 		});
 
-		var destinationFilter = (data.enableRegionFilter === false)
+		var destinationFilter = (data.enableRegionFilter === 'no')
 			? { renderChips: function () {}, updateLabel: function () {}, reset: function () {} }
 			: initFilter({
 				wrapperSelector: '.bbm-destinations',
