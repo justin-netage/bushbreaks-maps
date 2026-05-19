@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.4
+Stable tag: 0.9.5
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.5 =
+* Clicking a search suggestion now closes the dropdown for good. Previously the dropdown re-opened because runSearch re-ran the suggestion match against the just-picked term; the suggestion-click path now skips that re-render.
 
 = 0.9.4 =
 * Fix: the "Region filter" toggle now actually hides the front-end region/reserve dropdown. The previous fix used a boolean flag that wp_localize_script silently cast to an empty string, so the JS guard never triggered. Sent as `'yes'`/`'no'` strings now.

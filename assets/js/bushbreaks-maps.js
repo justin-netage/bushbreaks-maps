@@ -923,7 +923,7 @@
 					if (!searchInput) return;
 					searchInput.value = name;
 					hideSuggestions();
-					runSearch(name);
+					runSearch(name, { skipSuggestion: true });
 				});
 				suggestionEl.appendChild(btn);
 			});
@@ -942,9 +942,12 @@
 			suggestionEl.hidden = false;
 		}
 
-		function runSearch(term) {
+		function runSearch(term, options) {
 			term = (term || '').trim();
-			updateSuggestion(term);
+			options = options || {};
+			if (!options.skipSuggestion) {
+				updateSuggestion(term);
+			}
 			var hasFilter = term !== ''
 				|| selectedCategoryIds.length > 0
 				|| selectedDestinationIds.length > 0;
