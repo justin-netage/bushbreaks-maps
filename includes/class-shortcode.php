@@ -210,6 +210,16 @@ class Shortcode {
 			wp_enqueue_script( 'bushbreaks-maps-google' );
 		}
 
+		$palette = Repository::derive_palette( (string) ( $opts['primary_color'] ?? '#8AD000' ) );
+		$inline_css = sprintf(
+			'.bbm-wrap{--bbm-primary:%s;--bbm-primary-dark:%s;--bbm-primary-deep:%s;--bbm-primary-soft:%s;}',
+			$palette['primary'],
+			$palette['dark'],
+			$palette['deep'],
+			$palette['soft']
+		);
+		wp_add_inline_style( 'bushbreaks-maps', $inline_css );
+
 		wp_localize_script(
 			'bushbreaks-maps',
 			'BushbreaksMapsData',

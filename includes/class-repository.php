@@ -587,4 +587,95 @@ class Repository {
 
 		return '';
 	}
+
+	/**
+	 * Derive a small accent palette from a primary hex colour:
+	 * 'primary' (as picked), 'dark' (for text on white), 'deep' (extra
+	 * dark for higher contrast), and 'soft' (translucent for chip-tint
+	 * style backgrounds).
+	 */
+	public static function derive_palette( string $hex ): array {
+		$hex = ltrim( $hex, '#' );
+		if ( strlen( $hex ) === 3 ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( ! preg_match( '/^[A-Fa-f0-9]{6}$/', $hex ) ) {
+			$hex = '8AD000';
+		}
+
+		$r = hexdec( substr( $hex, 0, 2 ) );
+		$g = hexdec( substr( $hex, 2, 2 ) );
+		$b = hexdec( substr( $hex, 4, 2 ) );
+
+		$hsl  = self::rgb_to_hsl( $r, $g, $b );
+		$dark = self::hsl_to_hex( $hsl['h'], min( 1.0, $hsl['s'] ), max( 0.0, $hsl['l'] * 0.55 ) );
+		$deep = self::hsl_to_hex( $hsl['h'], min( 1.0, $hsl['s'] ), max( 0.0, $hsl['l'] * 0.35 ) );
+
+		return [
+			'primary' => '#' . strtolower( $hex ),
+			'dark'    => $dark,
+			'deep'    => $deep,
+			'soft'    => sprintf( 'rgba(%d, %d, %d, 0.18)', $r, $g, $b ),
+		];
+	}
+
+	private static function rgb_to_hsl( int $r, int $g, int $b ): array {
+		$r /= 255;
+		$g /= 255;
+		$b /= 255;
+		$max = max( $r, $g, $b );
+		$min = min( $r, $g, $b );
+		$l   = ( $max + $min ) / 2;
+		$d   = $max - $min;
+
+		if ( $d == 0 ) {
+			return [ 'h' => 0.0, 's' => 0.0, 'l' => $l ];
+		}
+		$s = $l > 0.5 ? $d / ( 2 - $max - $min ) : $d / ( $max + $min );
+		switch ( $max ) {
+			case $r:
+				$h = ( $g - $b ) / $d + ( $g < $b ? 6 : 0 );
+				break;
+			case $g:
+				$h = ( $b - $r ) / $d + 2;
+				break;
+			default:
+				$h = ( $r - $g ) / $d + 4;
+				break;
+		}
+		$h /= 6;
+		return [ 'h' => $h, 's' => $s, 'l' => $l ];
+	}
+
+	private static function hsl_to_hex( float $h, float $s, float $l ): string {
+		if ( $s == 0 ) {
+			$r = $g = $b = $l;
+		} else {
+			$q  = $l < 0.5 ? $l * ( 1 + $s ) : $l + $s - $l * $s;
+			$p  = 2 * $l - $q;
+			$r  = self::hue2rgb( $p, $q, $h + 1 / 3 );
+			$g  = self::hue2rgb( $p, $q, $h );
+			$b  = self::hue2rgb( $p, $q, $h - 1 / 3 );
+		}
+		return sprintf( '#%02x%02x%02x', (int) round( $r * 255 ), (int) round( $g * 255 ), (int) round( $b * 255 ) );
+	}
+
+	private static function hue2rgb( float $p, float $q, float $t ): float {
+		if ( $t < 0 ) {
+			$t += 1;
+		}
+		if ( $t > 1 ) {
+			$t -= 1;
+		}
+		if ( $t < 1 / 6 ) {
+			return $p + ( $q - $p ) * 6 * $t;
+		}
+		if ( $t < 1 / 2 ) {
+			return $q;
+		}
+		if ( $t < 2 / 3 ) {
+			return $p + ( $q - $p ) * ( 2 / 3 - $t ) * 6;
+		}
+		return $p;
+	}
 }

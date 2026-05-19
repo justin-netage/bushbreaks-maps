@@ -27,6 +27,7 @@ class Settings {
 			'valid_from_field'    => 'valid_from',
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
+			'primary_color'       => '#8AD000',
 			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
 			'map_center_lng' => 31.0498,
@@ -148,6 +149,13 @@ class Settings {
 
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
 
+		if ( isset( $input['primary_color'] ) ) {
+			$raw = trim( (string) $input['primary_color'] );
+			if ( preg_match( '/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/', $raw ) ) {
+				$out['primary_color'] = $raw;
+			}
+		}
+
 		foreach ( [ 'marker_icon_url', 'cluster_icon_url' ] as $url_key ) {
 			if ( isset( $input[ $url_key ] ) ) {
 				$out[ $url_key ] = esc_url_raw( (string) $input[ $url_key ] );
@@ -268,6 +276,13 @@ class Settings {
 					<tr>
 						<th><label for="bbm_currency"><?php esc_html_e( 'Currency symbol', 'bushbreaks-maps' ); ?></label></th>
 						<td><input id="bbm_currency" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[currency_symbol]" type="text" value="<?php echo esc_attr( $opts['currency_symbol'] ); ?>" class="small-text"></td>
+					</tr>
+					<tr>
+						<th><label for="bbm_primary_color"><?php esc_html_e( 'Primary color', 'bushbreaks-maps' ); ?></label></th>
+						<td>
+							<input id="bbm_primary_color" name="<?php echo esc_attr( self::OPTION_KEY ); ?>[primary_color]" type="color" value="<?php echo esc_attr( $opts['primary_color'] ); ?>" style="width:60px;height:34px;padding:0;border:1px solid #cfd4da;border-radius:6px;background:transparent;cursor:pointer;">
+							<p class="description"><?php esc_html_e( 'Accent colour used across chips, special-price text, discount pills, links and the loader spinner. Derived darker/lighter shades follow your choice.', 'bushbreaks-maps' ); ?></p>
+						</td>
 					</tr>
 					<tr>
 						<th><label for="bbm_clat"><?php esc_html_e( 'Default map centre latitude', 'bushbreaks-maps' ); ?></label></th>
@@ -453,7 +468,7 @@ class Settings {
 			.bbm-sort-handle { cursor: grab; color: #8c8f94; font-size: 18px; line-height: 1; padding: 0 4px; user-select: none; }
 			.bbm-sort-handle:active { cursor: grabbing; }
 			.bbm-sort-label { font-size: 14px; }
-			.bbm-sort-placeholder { background: #f0f7e0; border: 1px dashed #8AD000; border-radius: 4px; margin: 0 0 4px; }
+			.bbm-sort-placeholder { background: #f0f7e0; border: 1px dashed <?php echo esc_attr( $opts['primary_color'] ?? '#8AD000' ); ?>; border-radius: 4px; margin: 0 0 4px; }
 			.bbm-collapsible > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
 			.bbm-collapsible > summary::-webkit-details-marker { display: none; }
 			.bbm-collapsible > summary::before { content: "\25B8"; display: inline-block; color: #8c8f94; transition: transform 0.15s ease; }
