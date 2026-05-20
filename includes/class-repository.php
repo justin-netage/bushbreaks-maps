@@ -36,13 +36,50 @@ class Repository {
 		$has_destination = ! empty( $args['destination_ids'] );
 
 		if ( ! $has_search && ! $has_category && ! $has_destination ) {
-			$query = new \WP_Query(
-				array_merge(
-					$base_args,
-					[ 'posts_per_page' => (int) $args['limit'] ]
+			$limit         = (int) $args['limit'];
+			$featured_ids  = array_values(
+				array_filter(
+					array_map( 'intval', (array) ( $opts['featured_post_ids'] ?? [] ) ),
+					function ( $id ) {
+						return $id > 0;
+					}
 				)
 			);
-			$posts = $query->posts;
+
+			$posts = [];
+
+			if ( ! empty( $featured_ids ) ) {
+				$featured_query = new \WP_Query(
+					[
+						'post_type'      => $base_args['post_type'],
+						'post_status'    => $base_args['post_status'],
+						'post__in'       => $featured_ids,
+						'orderby'        => 'post__in',
+						'posts_per_page' => count( $featured_ids ),
+						'no_found_rows'  => true,
+					]
+				);
+				$posts = $featured_query->posts;
+
+				if ( $limit > 0 && count( $posts ) > $limit ) {
+					$posts = array_slice( $posts, 0, $limit );
+				}
+			}
+
+			$remaining = ( $limit > 0 ) ? ( $limit - count( $posts ) ) : -1;
+			if ( $remaining !== 0 ) {
+				$fill_args = array_merge(
+					$base_args,
+					[
+						'posts_per_page' => $remaining > 0 ? $remaining : -1,
+					]
+				);
+				if ( ! empty( $featured_ids ) ) {
+					$fill_args['post__not_in'] = $featured_ids;
+				}
+				$fill_query = new \WP_Query( $fill_args );
+				$posts      = array_merge( $posts, $fill_query->posts );
+			}
 		} else {
 			$ids = self::collect_search_ids(
 				$args['search'],

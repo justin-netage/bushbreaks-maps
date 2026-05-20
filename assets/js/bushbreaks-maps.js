@@ -797,23 +797,27 @@
 		}
 
 		// Suggestion pool is terms only (destination + category names).
-		// Lodge titles are intentionally excluded — searches should bias
-		// toward places/regions, not specific accommodations.
+		// Places (destinations + categories) rank before individual lodge
+		// titles so generic queries surface regions/areas first. Lodge
+		// names still appear, just lower in the list.
 		function buildSuggestionPool() {
-			var pool = [];
+			var entries = [];
 			function walkDests(list) {
 				(list || []).forEach(function (d) {
-					if (d && d.name) pool.push(String(d.name));
+					if (d && d.name) entries.push({ name: String(d.name), tier: 0 });
 					if (d && d.children) walkDests(d.children);
 				});
 			}
 			walkDests(data.destinations);
 			(data.categories || []).forEach(function (c) {
-				if (c && c.name) pool.push(String(c.name));
+				if (c && c.name) entries.push({ name: String(c.name), tier: 0 });
+			});
+			(data.locations || []).forEach(function (loc) {
+				if (loc && loc.title) entries.push({ name: String(loc.title), tier: 1 });
 			});
 			var seen = {};
-			return pool.filter(function (s) {
-				var k = s.toLowerCase();
+			return entries.filter(function (e) {
+				var k = e.name.toLowerCase();
 				if (seen[k]) return false;
 				seen[k] = true;
 				return true;
@@ -838,9 +842,9 @@
 			return prev[n];
 		}
 
-		// Returns up to MAX ranked term suggestions. Rank order:
-		// 0 = prefix match, 1 = substring match, 2 = fuzzy match.
-		// Within a rank, items keep their pool order.
+		// Returns up to MAX ranked term suggestions. Sort order:
+		// tier (0 = place/category, 1 = lodge) -> match rank
+		// (0 prefix, 1 substring, 2 fuzzy) -> original pool order.
 		function findSuggestions(term) {
 			var MAX = 6;
 			term = term.trim().toLowerCase();
@@ -849,7 +853,7 @@
 			var scored = [];
 			for (var i = 0; i < suggestionPool.length; i++) {
 				var cand = suggestionPool[i];
-				var lower = cand.toLowerCase();
+				var lower = cand.name.toLowerCase();
 				var rank = -1;
 
 				if (lower.indexOf(term) === 0) {
@@ -873,11 +877,12 @@
 				}
 
 				if (rank !== -1) {
-					scored.push({ name: cand, rank: rank, idx: i });
+					scored.push({ name: cand.name, tier: cand.tier, rank: rank, idx: i });
 				}
 			}
 
 			scored.sort(function (a, b) {
+				if (a.tier !== b.tier) return a.tier - b.tier;
 				if (a.rank !== b.rank) return a.rank - b.rank;
 				return a.idx - b.idx;
 			});
