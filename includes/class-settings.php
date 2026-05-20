@@ -34,6 +34,7 @@ class Settings {
 			'map_zoom'       => 6,
 			'list_limit'     => 10,
 			'list_heading_label'  => 'Lodges',
+			'featured_post_ids'   => [],
 			'marker_icon_url'    => '',
 			'marker_icon_width'  => 32,
 			'marker_icon_height' => 40,
@@ -63,6 +64,7 @@ class Settings {
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'wp_ajax_bushbreaks_maps_reorder_categories', [ $this, 'ajax_reorder_categories' ] );
 		add_action( 'wp_ajax_bushbreaks_maps_reorder_destinations', [ $this, 'ajax_reorder_destinations' ] );
+		add_action( 'wp_ajax_bushbreaks_maps_lodge_search', [ $this, 'ajax_lodge_search' ] );
 	}
 
 	public function add_menu(): void {
@@ -95,6 +97,8 @@ class Settings {
 					'nonce'             => wp_create_nonce( 'bushbreaks_maps_backfill' ),
 					'reorderNonce'      => wp_create_nonce( 'bushbreaks_maps_reorder_categories' ),
 					'reorderDestNonce'  => wp_create_nonce( 'bushbreaks_maps_reorder_destinations' ),
+					'lodgeSearchNonce'  => wp_create_nonce( 'bushbreaks_maps_lodge_search' ),
+					'optionKey'         => self::OPTION_KEY,
 					'i18n'    => [
 						'starting'    => __( 'Starting…', 'bushbreaks-maps' ),
 						'progress'    => __( 'Processed %1$s of %2$s…', 'bushbreaks-maps' ),
@@ -148,6 +152,18 @@ class Settings {
 			$out['list_limit'] = max( 1, min( 50, (int) $input['list_limit'] ) );
 		}
 
+		$out['featured_post_ids'] = [];
+		if ( isset( $input['featured_post_ids'] ) && is_array( $input['featured_post_ids'] ) ) {
+			$seen = [];
+			foreach ( $input['featured_post_ids'] as $fid ) {
+				$id = (int) $fid;
+				if ( $id > 0 && ! isset( $seen[ $id ] ) ) {
+					$seen[ $id ] = true;
+					$out['featured_post_ids'][] = $id;
+				}
+			}
+		}
+
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
 
 		if ( isset( $input['primary_color'] ) ) {
@@ -185,6 +201,60 @@ class Settings {
 			.bbm-tab-content { display: none; }
 			.bbm-tab-content.is-active { display: block; }
 			.bbm-settings-page .bbm-submit-row { margin-top: 12px; }
+			.bbm-featured-picker { max-width: 520px; position: relative; }
+			.bbm-featured-search { width: 100%; }
+			.bbm-featured-suggestions {
+				margin: 4px 0 8px;
+				padding: 4px;
+				border: 1px solid #cfd4da;
+				border-radius: 4px;
+				background: #fff;
+				max-height: 220px;
+				overflow-y: auto;
+				box-shadow: 0 4px 10px rgba(15, 30, 50, 0.08);
+			}
+			.bbm-featured-suggestions[hidden] { display: none; }
+			.bbm-featured-suggest {
+				display: block;
+				width: 100%;
+				padding: 6px 10px;
+				border: 0;
+				background: transparent;
+				text-align: left;
+				cursor: pointer;
+				border-radius: 4px;
+				font-size: 13px;
+				font-family: inherit;
+				color: inherit;
+			}
+			.bbm-featured-suggest:hover,
+			.bbm-featured-suggest:focus { background: #f3f5f7; outline: none; }
+			.bbm-featured-suggest-empty { padding: 6px 10px; color: #6a7280; font-size: 13px; }
+			.bbm-featured-selected { list-style: none; margin: 8px 0 0; padding: 0; }
+			.bbm-featured-selected li {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 8px 10px;
+				margin: 0 0 4px;
+				background: #fff;
+				border: 1px solid #c3c4c7;
+				border-radius: 4px;
+			}
+			.bbm-featured-handle { cursor: grab; color: #8c8f94; font-size: 18px; line-height: 1; user-select: none; }
+			.bbm-featured-handle:active { cursor: grabbing; }
+			.bbm-featured-name { flex: 1; font-size: 14px; }
+			.bbm-featured-remove {
+				background: transparent;
+				border: 0;
+				color: #6a7280;
+				cursor: pointer;
+				font-size: 18px;
+				line-height: 1;
+				padding: 0 6px;
+			}
+			.bbm-featured-remove:hover { color: #b54708; }
+			.bbm-featured-placeholder { background: #f0f7e0; border: 1px dashed <?php echo esc_attr( $opts['primary_color'] ?? '#8AD000' ); ?>; border-radius: 4px; margin: 0 0 4px; }
 		</style>
 		<div class="wrap bbm-settings-page">
 			<h1><?php esc_html_e( 'Bushbreaks Maps', 'bushbreaks-maps' ); ?></h1>
@@ -230,6 +300,39 @@ class Settings {
 						<tr>
 							<th><label for="bbm_zoom"><?php esc_html_e( 'Default zoom (1-19)', 'bushbreaks-maps' ); ?></label></th>
 							<td><input id="bbm_zoom" name="<?php echo $option_attr; ?>[map_zoom]" type="number" min="1" max="19" value="<?php echo esc_attr( (string) $opts['map_zoom'] ); ?>" class="small-text"></td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Featured accommodations', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<p class="description" style="margin:0 0 6px;"><?php esc_html_e( 'These appear first in the default list — before any search or filter is applied. Drag to reorder.', 'bushbreaks-maps' ); ?></p>
+								<div class="bbm-featured-picker">
+									<input type="search" class="bbm-featured-search regular-text" placeholder="<?php esc_attr_e( 'Search accommodations to add…', 'bushbreaks-maps' ); ?>" autocomplete="off" style="margin-bottom:4px;">
+									<div class="bbm-featured-suggestions" hidden></div>
+									<ul class="bbm-featured-selected">
+										<?php
+										$featured_ids = (array) ( $opts['featured_post_ids'] ?? [] );
+										foreach ( $featured_ids as $fid ) {
+											$fid_int = (int) $fid;
+											if ( $fid_int <= 0 ) {
+												continue;
+											}
+											$title = get_the_title( $fid_int );
+											if ( $title === '' ) {
+												continue;
+											}
+											?>
+											<li data-id="<?php echo esc_attr( (string) $fid_int ); ?>">
+												<span class="bbm-featured-handle" aria-hidden="true">&#8801;</span>
+												<span class="bbm-featured-name"><?php echo esc_html( html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ); ?></span>
+												<input type="hidden" name="<?php echo $option_attr; ?>[featured_post_ids][]" value="<?php echo esc_attr( (string) $fid_int ); ?>">
+												<button type="button" class="bbm-featured-remove" aria-label="<?php esc_attr_e( 'Remove', 'bushbreaks-maps' ); ?>">&times;</button>
+											</li>
+											<?php
+										}
+										?>
+									</ul>
+								</div>
+							</td>
 						</tr>
 					</table>
 				</div>
@@ -657,5 +760,39 @@ class Settings {
 		}
 
 		wp_send_json_success();
+	}
+
+	public function ajax_lodge_search(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'forbidden' ], 403 );
+		}
+		check_ajax_referer( 'bushbreaks_maps_lodge_search', 'nonce' );
+
+		$opts = self::all();
+		$term = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
+
+		$args = [
+			'post_type'      => $opts['post_type'],
+			'post_status'    => 'publish',
+			'posts_per_page' => 20,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		];
+		if ( $term !== '' ) {
+			$args['s'] = $term;
+		}
+		$query = new \WP_Query( $args );
+
+		$items = [];
+		foreach ( $query->posts as $pid ) {
+			$items[] = [
+				'id'    => (int) $pid,
+				'title' => html_entity_decode( get_the_title( (int) $pid ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+			];
+		}
+
+		wp_send_json_success( [ 'items' => $items ] );
 	}
 }

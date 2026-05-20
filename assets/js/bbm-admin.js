@@ -63,6 +63,170 @@
 		}
 	})();
 
+	// Featured accommodations picker: search + add + sortable remove list
+	(function () {
+		var picker = document.querySelector('.bbm-featured-picker');
+		if (!picker || !cfg || typeof window.jQuery === 'undefined') return;
+
+		var $          = window.jQuery;
+		var search     = picker.querySelector('.bbm-featured-search');
+		var suggestEl  = picker.querySelector('.bbm-featured-suggestions');
+		var selected   = picker.querySelector('.bbm-featured-selected');
+		if (!search || !suggestEl || !selected) return;
+
+		var debounceId = null;
+		var lastReq    = 0;
+
+		search.addEventListener('input', function () {
+			var term = search.value.trim();
+			clearTimeout(debounceId);
+			if (term.length < 2) {
+				suggestEl.innerHTML = '';
+				suggestEl.hidden = true;
+				return;
+			}
+			debounceId = setTimeout(function () { runQuery(term); }, 250);
+		});
+
+		search.addEventListener('focus', function () {
+			if (suggestEl.children.length > 0) suggestEl.hidden = false;
+		});
+
+		document.addEventListener('mousedown', function (e) {
+			if (suggestEl.hidden) return;
+			if (!picker.contains(e.target)) {
+				suggestEl.hidden = true;
+			}
+		});
+
+		suggestEl.addEventListener('click', function (e) {
+			var btn = e.target.closest('.bbm-featured-suggest');
+			if (!btn) return;
+			e.preventDefault();
+			var id    = parseInt(btn.getAttribute('data-id'), 10);
+			var title = btn.textContent;
+			if (id > 0 && getSelectedIds().indexOf(id) === -1) {
+				addSelected(id, title);
+			}
+			search.value = '';
+			suggestEl.innerHTML = '';
+			suggestEl.hidden = true;
+			search.focus();
+		});
+
+		selected.addEventListener('click', function (e) {
+			var btn = e.target.closest('.bbm-featured-remove');
+			if (!btn) return;
+			e.preventDefault();
+			var li = btn.closest('li');
+			if (li) li.remove();
+		});
+
+		if (typeof $.fn.sortable === 'function') {
+			$(selected).sortable({
+				items: '> li',
+				handle: '.bbm-featured-handle',
+				axis: 'y',
+				placeholder: 'bbm-featured-placeholder',
+				forcePlaceholderSize: true,
+			}).disableSelection();
+		}
+
+		function runQuery(term) {
+			var reqId = ++lastReq;
+			$.get(cfg.ajaxUrl, {
+				action: 'bushbreaks_maps_lodge_search',
+				nonce: cfg.lodgeSearchNonce,
+				q: term,
+			}).done(function (json) {
+				if (reqId !== lastReq) return;
+				if (!json || !json.success) {
+					suggestEl.innerHTML = '<div class="bbm-featured-suggest-empty">' + escapeHtml(cfg.i18n && cfg.i18n.error ? cfg.i18n.error : 'Search failed.') + '</div>';
+					suggestEl.hidden = false;
+					return;
+				}
+				renderSuggestions((json.data && json.data.items) || []);
+			}).fail(function () {
+				if (reqId !== lastReq) return;
+				suggestEl.innerHTML = '<div class="bbm-featured-suggest-empty">' + escapeHtml(cfg.i18n && cfg.i18n.networkError ? cfg.i18n.networkError : 'Network error.') + '</div>';
+				suggestEl.hidden = false;
+			});
+		}
+
+		function renderSuggestions(items) {
+			suggestEl.innerHTML = '';
+			var picked = getSelectedIds();
+			var shown  = 0;
+			items.forEach(function (it) {
+				if (!it || !it.id) return;
+				if (picked.indexOf(parseInt(it.id, 10)) !== -1) return;
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'bbm-featured-suggest';
+				btn.setAttribute('data-id', String(it.id));
+				btn.textContent = String(it.title || '');
+				suggestEl.appendChild(btn);
+				shown++;
+			});
+			if (shown === 0) {
+				var empty = document.createElement('div');
+				empty.className = 'bbm-featured-suggest-empty';
+				empty.textContent = 'No more matches.';
+				suggestEl.appendChild(empty);
+			}
+			suggestEl.hidden = false;
+		}
+
+		function getSelectedIds() {
+			var ids = [];
+			selected.querySelectorAll('li').forEach(function (li) {
+				var id = parseInt(li.getAttribute('data-id'), 10);
+				if (id > 0) ids.push(id);
+			});
+			return ids;
+		}
+
+		function addSelected(id, title) {
+			var li = document.createElement('li');
+			li.setAttribute('data-id', String(id));
+
+			var handle = document.createElement('span');
+			handle.className = 'bbm-featured-handle';
+			handle.setAttribute('aria-hidden', 'true');
+			handle.innerHTML = '&#8801;';
+
+			var name = document.createElement('span');
+			name.className = 'bbm-featured-name';
+			name.textContent = title;
+
+			var hidden = document.createElement('input');
+			hidden.type = 'hidden';
+			hidden.name = (cfg.optionKey || 'bushbreaks_maps_settings') + '[featured_post_ids][]';
+			hidden.value = String(id);
+
+			var remove = document.createElement('button');
+			remove.type = 'button';
+			remove.className = 'bbm-featured-remove';
+			remove.setAttribute('aria-label', 'Remove');
+			remove.innerHTML = '&times;';
+
+			li.appendChild(handle);
+			li.appendChild(name);
+			li.appendChild(hidden);
+			li.appendChild(remove);
+			selected.appendChild(li);
+		}
+
+		function escapeHtml(str) {
+			return String(str == null ? '' : str)
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+		}
+	})();
+
 	// Drag-and-drop category ordering
 	if (cfg && typeof window.jQuery !== 'undefined' && typeof jQuery.fn.sortable === 'function') {
 		var $list = jQuery('#bbm-category-order-list');
