@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.8
+Stable tag: 0.9.9
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,10 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.9 =
+* New "Featured accommodations" picker in Settings → Bushbreaks Maps → General. Search and pick any number of lodges to appear at the top of the default list (before any search or filter). Drag the rows to reorder; remaining slots fill with the rest of the accommodations alphabetically.
+* Search suggestions dropdown now includes lodge titles too, ranked beneath regions and categories. Typing a lodge name surfaces a suggestion even if no place/region matches it.
 
 = 0.9.8 =
 * Fix: search + filter chips no longer revert the map to every pin when their intersection is empty. With active chips, a search that returns zero results now keeps the map empty (matching the sidebar's "no matches" state) instead of looking like the search and filters were combined as a union. With no chips active, the existing "show all pins on zero results" behaviour stays.
