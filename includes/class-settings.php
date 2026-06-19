@@ -542,6 +542,16 @@ class Settings {
 									<?php esc_html_e( 'Add to a Destinations catalog → Data sources → "Scheduled feed".', 'bushbreaks-maps' ); ?>
 									<a href="<?php echo esc_url( Feed::feed_url( 'destinations' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
 								</p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Products feed URL', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'products' ) ); ?>">
+								<p class="description">
+									<?php esc_html_e( 'Standard product catalog (RSS). Categories become product_type; province, reserve and categories become custom_label_0/1/2.', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url( 'products' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+								</p>
 								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
 									<p class="description"><em><?php esc_html_e( 'Tip: enable pretty permalinks (Settings → Permalinks) for cleaner /bushbreaks-feed/*.xml URLs.', 'bushbreaks-maps' ); ?></em></p>
 								<?php endif; ?>

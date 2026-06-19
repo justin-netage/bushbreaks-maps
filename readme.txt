@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.15
+Stable tag: 0.9.16
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.16 =
+* New Products catalog feed at /bushbreaks-feed/products.xml (RSS 2.0 + Google product namespace), alongside the Hotels and Destinations feeds. Each lodge's categories are emitted as product_type, and province, reserve and categories as custom_label_0/1/2 for ad-set targeting. All three feed URLs are listed on the Facebook feed settings tab.
 
 = 0.9.15 =
 * New Meta Destinations catalog feed at /bushbreaks-feed/destinations.xml (alongside the Hotels feed). Each lodge appears in both feeds; the Destinations feed uses destination_id, name, address, latitude/longitude, price, url and image. Both URLs are listed on the Facebook feed settings tab.
