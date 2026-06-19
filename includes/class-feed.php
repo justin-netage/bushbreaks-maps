@@ -211,6 +211,7 @@ class Feed {
 		if ( $brand === '' ) {
 			$brand = (string) get_bloginfo( 'name' );
 		}
+		$product_type = trim( (string) ( $opts['feed_product_type'] ?? '' ) );
 
 		$rows = Repository::listing_rows();
 		$this->flush_and_headers();
@@ -256,12 +257,9 @@ class Feed {
 			}
 			printf( "<g:brand>%s</g:brand>\n", $this->cdata( $brand ) );
 
-			// Categories drive the catalogue structure (one product_type each).
-			foreach ( (array) $row['categories'] as $cat ) {
-				$cat = (string) $cat;
-				if ( $cat !== '' ) {
-					printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( $cat ) );
-				}
+			// Fixed catalogue product type (e.g. "Holiday Destinations").
+			if ( $product_type !== '' ) {
+				printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( $product_type ) );
 			}
 
 			// Location, reserve and categories as custom labels for ad-set filters.

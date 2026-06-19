@@ -34,6 +34,7 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 
 = 0.9.17 =
 * Products feed custom labels remapped: custom_label_0 is now the location details (address/location text), custom_label_1 the reserve, and custom_label_2 the categories.
+* Products feed product_type is now a fixed value set on the Facebook feed tab (default "Holiday Destinations") instead of one product_type per category. Categories remain available in custom_label_2.
 
 = 0.9.16 =
 * New Products catalog feed at /bushbreaks-feed/products.xml (RSS 2.0 + Google product namespace), alongside the Hotels and Destinations feeds. Each lodge's categories are emitted as product_type, and province, reserve and categories as custom_label_0/1/2 for ad-set targeting. All three feed URLs are listed on the Facebook feed settings tab.

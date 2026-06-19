@@ -29,6 +29,7 @@ class Settings {
 			'currency_symbol'     => 'R',
 			'feed_currency'       => 'ZAR',
 			'feed_brand'          => '',
+			'feed_product_type'   => 'Holiday Destinations',
 			'feed_country'        => 'South Africa',
 			'feed_city_field'        => '',
 			'feed_star_rating_field' => '',
@@ -137,7 +138,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_product_type', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -569,6 +570,13 @@ class Settings {
 							<td>
 								<input id="bbm_feed_brand" name="<?php echo $option_attr; ?>[feed_brand]" type="text" value="<?php echo esc_attr( $opts['feed_brand'] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( (string) get_bloginfo( 'name' ) ); ?>">
 								<p class="description"><?php esc_html_e( 'Brand applied to every hotel. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_product_type"><?php esc_html_e( 'Product type (Products feed)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_product_type" name="<?php echo $option_attr; ?>[feed_product_type]" type="text" value="<?php echo esc_attr( $opts['feed_product_type'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Fixed g:product_type for every item in the Products feed (e.g. "Holiday Destinations"). Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
