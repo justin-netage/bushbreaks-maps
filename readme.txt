@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.10
+Stable tag: 0.9.11
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.11 =
+* Fix: the Facebook feed could fail to load with "XML declaration allowed only at the start of the document" when another plugin or the theme emitted stray whitespace before the feed rendered. The feed now discards any pending output so the XML declaration is always the first byte.
 
 = 0.9.10 =
 * New "Facebook feed" settings tab with a Facebook / Meta product catalog feed built from your listings. The feed is RSS 2.0 with the Google product namespace, so the same URL works for Meta Commerce Manager, Google Merchant Center and Pinterest catalogues. Copy the feed URL into Commerce Manager as a "Scheduled feed".
