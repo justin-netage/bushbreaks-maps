@@ -33,6 +33,7 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 == Changelog ==
 
 = 0.9.11 =
+* Fix: the Facebook feed URL (/bushbreaks-feed/facebook.xml) was 301-redirected by WordPress to a trailing-slash variant, which crawlers like Facebook's then saw as a 404 / "format isn't supported". The feed now cancels the canonical trailing-slash redirect and the rewrite rule also accepts an optional trailing slash. After updating, re-save Permalinks once if the feed still redirects.
 * Fix: the Facebook feed could fail to load with "XML declaration allowed only at the start of the document" when another plugin or the theme emitted stray whitespace before the feed rendered. The feed now discards any pending output so the XML declaration is always the first byte.
 
 = 0.9.10 =
