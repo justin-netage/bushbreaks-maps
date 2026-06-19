@@ -264,9 +264,9 @@ class Feed {
 				}
 			}
 
-			// Province / reserve / categories as custom labels for ad-set filters.
-			if ( $row['region'] !== '' ) {
-				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $row['region'] ) );
+			// Location, reserve and categories as custom labels for ad-set filters.
+			if ( $row['addr1'] !== '' ) {
+				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $row['addr1'] ) );
 			}
 			if ( $row['neighborhood'] !== '' ) {
 				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $row['neighborhood'] ) );
