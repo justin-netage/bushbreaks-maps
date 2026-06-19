@@ -423,13 +423,14 @@ class Repository {
 	}
 
 	/**
-	 * Flatten every published listing into the raw fields the Meta Hotel
-	 * catalog feed needs. Prices are raw floats (or null); coordinates are
-	 * floats (or null) and the caller decides whether a missing location
-	 * disqualifies the listing. Region/neighbourhood are derived from the
-	 * destination taxonomy hierarchy.
+	 * Flatten every published listing into the raw fields the Meta travel
+	 * (Hotels / Destinations) and product feeds need. Prices are raw floats
+	 * (or null); coordinates are floats (or null) and the caller decides
+	 * whether a missing location disqualifies the listing. Province/reserve
+	 * come from the destination taxonomy hierarchy and categories from the
+	 * category taxonomy.
 	 */
-	public static function hotel_rows(): array {
+	public static function listing_rows(): array {
 		$opts = Settings::all();
 
 		$query = new \WP_Query(
@@ -452,6 +453,7 @@ class Repository {
 		$normal_field  = (string) ( $opts['normal_price_field']  ?? '' );
 		$special_field = (string) ( $opts['special_price_field'] ?? '' );
 		$dest_tax      = (string) ( $opts['destination_taxonomy'] ?? '' );
+		$cat_tax       = (string) ( $opts['category_taxonomy'] ?? '' );
 
 		$rows = [];
 		foreach ( $query->posts as $post ) {
@@ -485,7 +487,8 @@ class Repository {
 				}
 			}
 
-			$geo = self::destination_region_neighborhood( $post->ID, $dest_tax );
+			$geo        = self::destination_region_neighborhood( $post->ID, $dest_tax );
+			$categories = self::term_names( $post->ID, $cat_tax );
 
 			$description = has_excerpt( $post )
 				? get_the_excerpt( $post )
@@ -506,6 +509,7 @@ class Repository {
 				'city'         => trim( html_entity_decode( $city, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 				'region'       => $geo['region'],
 				'neighborhood' => $geo['neighborhood'],
+				'categories'   => $categories,
 				'star_rating'  => $star,
 			];
 		}
@@ -558,6 +562,25 @@ class Repository {
 		}
 		$out['neighborhood'] = $chosen->name;
 		return $out;
+	}
+
+	/** Names of the terms a post has in a taxonomy, in admin order. Empty when none. */
+	private static function term_names( int $post_id, string $taxonomy ): array {
+		if ( $taxonomy === '' || ! taxonomy_exists( $taxonomy ) ) {
+			return [];
+		}
+		$terms = get_the_terms( $post_id, $taxonomy );
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return [];
+		}
+		$names = [];
+		foreach ( $terms as $t ) {
+			$name = html_entity_decode( $t->name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			if ( $name !== '' ) {
+				$names[] = $name;
+			}
+		}
+		return $names;
 	}
 
 	private static function format_post( \WP_Post $post, array $opts ): ?array {
