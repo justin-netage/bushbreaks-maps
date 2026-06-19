@@ -76,6 +76,14 @@ class Feed {
 	}
 
 	private function render_facebook(): void {
+		// Discard anything already buffered (stray whitespace/newlines emitted
+		// by other plugins or the theme, gzip buffers, etc.) so the XML
+		// declaration is the very first byte. Otherwise XML parsers reject the
+		// feed with "XML declaration allowed only at the start of the document".
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+
 		$opts     = Settings::all();
 		$currency = strtoupper( trim( (string) ( $opts['feed_currency'] ?? 'ZAR' ) ) );
 		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
