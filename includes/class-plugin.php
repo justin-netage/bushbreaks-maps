@@ -20,6 +20,7 @@ final class Plugin {
 		$this->maybe_migrate_options();
 		( new Settings() )->register();
 		( new Shortcode() )->register();
+		( new Feed() )->register();
 		( new Ajax() )->register();
 		( new Coords_Sync() )->register();
 	}
