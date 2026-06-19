@@ -112,6 +112,16 @@ class Feed {
 			$brand = (string) get_bloginfo( 'name' );
 		}
 
+		$availability = (string) ( $opts['feed_availability'] ?? 'in stock' );
+		if ( ! in_array( $availability, Settings::feed_availability_options(), true ) ) {
+			$availability = 'in stock';
+		}
+		$condition = (string) ( $opts['feed_condition'] ?? 'new' );
+		if ( ! in_array( $condition, Settings::feed_condition_options(), true ) ) {
+			$condition = 'new';
+		}
+		$google_category = trim( (string) ( $opts['feed_google_category'] ?? '' ) );
+
 		$rows = Repository::feed_rows();
 
 		nocache_headers();
@@ -160,13 +170,19 @@ class Feed {
 			printf( "<g:description>%s</g:description>\n", $this->cdata( $description ) );
 			printf( "<g:link>%s</g:link>\n", esc_url( $row['link'] ) );
 			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
-			echo "<g:availability>in stock</g:availability>\n";
-			echo "<g:condition>new</g:condition>\n";
+			printf( "<g:availability>%s</g:availability>\n", esc_html( $availability ) );
+			printf( "<g:condition>%s</g:condition>\n", esc_html( $condition ) );
 			printf( "<g:price>%s</g:price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
 			if ( $sale !== null ) {
 				printf( "<g:sale_price>%s</g:sale_price>\n", esc_html( $this->money( (float) $sale, $currency ) ) );
 			}
 			printf( "<g:brand>%s</g:brand>\n", $this->cdata( $brand ) );
+			if ( $google_category !== '' ) {
+				printf( "<g:google_product_category>%s</g:google_product_category>\n", $this->cdata( $google_category ) );
+			}
+			if ( ! empty( $row['product_type'] ) ) {
+				printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( (string) $row['product_type'] ) );
+			}
 			echo "</item>\n";
 		}
 
