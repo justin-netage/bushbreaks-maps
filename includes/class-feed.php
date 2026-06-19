@@ -218,7 +218,7 @@ class Feed {
 
 		echo '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">' . "\n";
 		echo "<channel>\n";
-		printf( "<title>%s</title>\n", $this->cdata( (string) get_bloginfo( 'name' ) ) );
+		printf( "<title>%s</title>\n", $this->cdata( $this->feed_title() ) );
 		printf( "<link>%s</link>\n", esc_url( home_url( '/' ) ) );
 		printf( "<description>%s</description>\n", $this->cdata( __( 'Accommodation product feed', 'bushbreaks-maps' ) ) );
 
@@ -272,6 +272,9 @@ class Feed {
 			if ( ! empty( $row['categories'] ) ) {
 				printf( "<g:custom_label_2>%s</g:custom_label_2>\n", $this->cdata( implode( ', ', (array) $row['categories'] ) ) );
 			}
+			if ( ! empty( $row['features'] ) ) {
+				printf( "<g:custom_label_3>%s</g:custom_label_3>\n", $this->cdata( (string) $row['features'] ) );
+			}
 			echo "</item>\n";
 		}
 
@@ -285,7 +288,13 @@ class Feed {
 	private function begin_xml(): void {
 		$this->flush_and_headers();
 		echo "<listings>\n";
-		printf( "<title>%s</title>\n", $this->cdata( (string) get_bloginfo( 'name' ) ) );
+		printf( "<title>%s</title>\n", $this->cdata( $this->feed_title() ) );
+	}
+
+	/** Configured feed title, falling back to the site name. */
+	private function feed_title(): string {
+		$title = trim( (string) Settings::get( 'feed_title' ) );
+		return $title !== '' ? $title : (string) get_bloginfo( 'name' );
 	}
 
 	/**

@@ -28,8 +28,11 @@ class Settings {
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
 			'feed_currency'       => 'ZAR',
+			'feed_title'          => 'BushBreaks',
 			'feed_brand'          => '',
+			'feed_description_field' => 'about_lodge',
 			'feed_product_type'   => 'Holiday Destinations',
+			'feed_features_field' => 'unique_selling_points',
 			'feed_country'        => 'South Africa',
 			'feed_city_field'        => '',
 			'feed_star_rating_field' => '',
@@ -138,7 +141,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_product_type', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -559,6 +562,13 @@ class Settings {
 							</td>
 						</tr>
 						<tr>
+							<th><label for="bbm_feed_title"><?php esc_html_e( 'Feed title', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_title" name="<?php echo $option_attr; ?>[feed_title]" type="text" value="<?php echo esc_attr( $opts['feed_title'] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( (string) get_bloginfo( 'name' ) ); ?>">
+								<p class="description"><?php esc_html_e( 'Title element used in every feed. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
 							<th><label for="bbm_feed_currency"><?php esc_html_e( 'Feed currency (ISO code)', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_currency" name="<?php echo $option_attr; ?>[feed_currency]" type="text" maxlength="3" value="<?php echo esc_attr( $opts['feed_currency'] ); ?>" class="small-text" style="text-transform:uppercase;">
@@ -573,10 +583,24 @@ class Settings {
 							</td>
 						</tr>
 						<tr>
+							<th><label for="bbm_feed_description_field"><?php esc_html_e( 'Description field', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_description_field" name="<?php echo $option_attr; ?>[feed_description_field]" type="text" value="<?php echo esc_attr( $opts['feed_description_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods field used for the item description across all feeds (e.g. the "About Lodge" field). Falls back to the excerpt, then the post content, when empty.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
 							<th><label for="bbm_feed_product_type"><?php esc_html_e( 'Product type (Products feed)', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_product_type" name="<?php echo $option_attr; ?>[feed_product_type]" type="text" value="<?php echo esc_attr( $opts['feed_product_type'] ); ?>" class="regular-text">
 								<p class="description"><?php esc_html_e( 'Fixed g:product_type for every item in the Products feed (e.g. "Holiday Destinations"). Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_features_field"><?php esc_html_e( 'Features field (custom_label_3)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_features_field" name="<?php echo $option_attr; ?>[feed_features_field]" type="text" value="<?php echo esc_attr( $opts['feed_features_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods field (or taxonomy slug) for the lodge features / unique selling points. Output as custom_label_3 in the Products feed, comma-separated. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
