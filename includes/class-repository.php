@@ -489,7 +489,7 @@ class Repository {
 				}
 			}
 
-			$geo        = self::destination_region_neighborhood( $post->ID, $dest_tax );
+			$geo        = self::destination_geo( $post->ID, $dest_tax );
 			$categories = self::term_names( $post->ID, $cat_tax );
 			$features   = self::feature_label( $post->ID, $features_src );
 
@@ -515,8 +515,9 @@ class Repository {
 				'sale_price'   => $special,
 				'addr1'        => trim( html_entity_decode( $addr1, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 				'city'         => trim( html_entity_decode( $city, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
-				'region'       => $geo['region'],
-				'neighborhood' => $geo['neighborhood'],
+				'country'      => $geo['country'],
+				'province'     => $geo['province'],
+				'reserve'      => $geo['reserve'],
 				'categories'   => $categories,
 				'features'     => $features,
 				'star_rating'  => $star,
@@ -528,14 +529,15 @@ class Repository {
 	}
 
 	/**
-	 * Derive region + neighbourhood from the destination taxonomy. Takes the
-	 * most specific term assigned to the post: its top-level ancestor becomes
-	 * the region (e.g. "Limpopo") and the term itself the neighbourhood (e.g.
-	 * "Kruger National Park"). When the term is already top-level it is the
-	 * region with no neighbourhood.
+	 * Derive country / province / reserve from the destination taxonomy, which
+	 * is nested Country > Province > Reserve. Takes the most specific term
+	 * assigned to the post and maps the root-to-term chain by depth: level 0 =
+	 * country (e.g. "South Africa"), level 1 = province (e.g. "Limpopo"),
+	 * level 2 = reserve (e.g. "Kruger National Park"). Levels not present are
+	 * left empty (e.g. a lodge tagged only to a province has no reserve).
 	 */
-	private static function destination_region_neighborhood( int $post_id, string $taxonomy ): array {
-		$out = [ 'region' => '', 'neighborhood' => '' ];
+	private static function destination_geo( int $post_id, string $taxonomy ): array {
+		$out = [ 'country' => '', 'province' => '', 'reserve' => '' ];
 		if ( $taxonomy === '' || ! taxonomy_exists( $taxonomy ) ) {
 			return $out;
 		}
@@ -558,18 +560,21 @@ class Repository {
 			return $out;
 		}
 
-		$ancestors = get_ancestors( $chosen->term_id, $taxonomy, 'taxonomy' );
-		if ( empty( $ancestors ) ) {
-			// Top-level term: it's the region.
-			$out['region'] = $chosen->name;
-			return $out;
+		// Chain from root down to the chosen term: [country, province, reserve].
+		$chain = array_reverse( get_ancestors( $chosen->term_id, $taxonomy, 'taxonomy' ) );
+		$chain[] = (int) $chosen->term_id;
+
+		$levels = [ 'country', 'province', 'reserve' ];
+		foreach ( $chain as $i => $tid ) {
+			if ( ! isset( $levels[ $i ] ) ) {
+				break; // ignore anything deeper than reserve
+			}
+			$term = ( (int) $tid === (int) $chosen->term_id ) ? $chosen : get_term( (int) $tid, $taxonomy );
+			if ( $term && ! is_wp_error( $term ) ) {
+				$out[ $levels[ $i ] ] = $term->name;
+			}
 		}
 
-		$root = get_term( (int) end( $ancestors ), $taxonomy );
-		if ( $root && ! is_wp_error( $root ) ) {
-			$out['region'] = $root->name;
-		}
-		$out['neighborhood'] = $chosen->name;
 		return $out;
 	}
 
