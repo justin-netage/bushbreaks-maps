@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.14
+Stable tag: 0.9.15
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.15 =
+* New Meta Destinations catalog feed at /bushbreaks-feed/destinations.xml (alongside the Hotels feed). Each lodge appears in both feeds; the Destinations feed uses destination_id, name, address, latitude/longitude, price, url and image. Both URLs are listed on the Facebook feed settings tab.
 
 = 0.9.14 =
 * The Facebook feed now outputs Meta's Hotel catalog format (a <listings>/<listing> document with hotel_id, name, structured address, latitude/longitude, base_price, url and image) instead of the generic product catalog, so it can be used as a Hotels catalog / hotel ads data source. New settings: Country, optional City field and optional Star rating field. Region and neighborhood are derived from the destination taxonomy. Listings without coordinates, an image, or a price are skipped. The feed URL is unchanged.

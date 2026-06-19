@@ -6,24 +6,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Emits a Meta (Facebook) Hotel catalog feed built from the accommodation
- * listings. Uses Meta's hotel feed XML schema: a <listings> root with one
- * <listing> per lodge, carrying hotel_id, name, a structured <address>,
- * latitude/longitude, base_price, url and image — the format Commerce
- * Manager expects for a Hotels catalog / hotel ads.
+ * Emits Meta (Facebook) travel catalog feeds built from the accommodation
+ * listings, in Meta's <listings>/<listing> XML format:
  *
- * Feed URL (pretty permalinks):  {site}/bushbreaks-feed/facebook.xml
- * Feed URL (fallback, always on): {site}/?bbm_feed=facebook
+ *  - Hotels feed       /bushbreaks-feed/facebook.xml      (?bbm_feed=facebook)
+ *    hotel_id, name, address, latitude/longitude, base_price, image…
+ *  - Destinations feed /bushbreaks-feed/destinations.xml  (?bbm_feed=destinations)
+ *    destination_id, name, address, latitude/longitude, price, image…
  *
- * Paste the URL into Commerce Manager → Catalog (Hotels) → Data sources →
- * "Scheduled feed" and Facebook will re-fetch it on its own cadence.
+ * Each lodge is one entry in both feeds. Paste a URL into Commerce Manager →
+ * the matching catalog type → Data sources → "Scheduled feed".
  */
 class Feed {
 
 	public const QUERY_VAR = 'bbm_feed';
 
 	private const REWRITE_FLAG = 'bushbreaks_maps_feed_rewrites';
-	private const REWRITE_VER  = '2';
+	private const REWRITE_VER  = '3';
 
 	public function register(): void {
 		add_action( 'init', [ $this, 'add_rewrite_rule' ] );
@@ -43,8 +42,13 @@ class Feed {
 			'index.php?' . self::QUERY_VAR . '=facebook',
 			'top'
 		);
+		add_rewrite_rule(
+			'^bushbreaks-feed/destinations\.xml/?$',
+			'index.php?' . self::QUERY_VAR . '=destinations',
+			'top'
+		);
 
-		// Flush once when the rule set changes so the pretty URL resolves
+		// Flush once when the rule set changes so the pretty URLs resolve
 		// without forcing the admin to re-save permalinks.
 		if ( get_option( self::REWRITE_FLAG ) !== self::REWRITE_VER ) {
 			flush_rewrite_rules( false );
@@ -70,14 +74,16 @@ class Feed {
 	}
 
 	/**
-	 * Public, copy-pasteable feed URL. Uses the pretty permalink when the
-	 * site has a permalink structure, otherwise the always-on query arg.
+	 * Public, copy-pasteable feed URL for a given catalog type ('facebook'
+	 * for Hotels, 'destinations' for Destinations). Uses the pretty permalink
+	 * when the site has a permalink structure, otherwise the query arg.
 	 */
-	public static function feed_url(): string {
+	public static function feed_url( string $type = 'facebook' ): string {
+		$slug = $type === 'destinations' ? 'destinations' : 'facebook';
 		if ( get_option( 'permalink_structure' ) ) {
-			return home_url( '/bushbreaks-feed/facebook.xml' );
+			return home_url( '/bushbreaks-feed/' . $slug . '.xml' );
 		}
-		return add_query_arg( self::QUERY_VAR, 'facebook', home_url( '/' ) );
+		return add_query_arg( self::QUERY_VAR, $slug, home_url( '/' ) );
 	}
 
 	public function maybe_render(): void {
@@ -85,44 +91,28 @@ class Feed {
 		if ( $type === '' && isset( $_GET[ self::QUERY_VAR ] ) ) {
 			$type = sanitize_key( wp_unslash( (string) $_GET[ self::QUERY_VAR ] ) );
 		}
-		if ( $type !== 'facebook' ) {
-			return;
-		}
 
-		$this->render_facebook();
-		exit;
+		if ( $type === 'facebook' ) {
+			$this->render_hotels();
+			exit;
+		}
+		if ( $type === 'destinations' ) {
+			$this->render_destinations();
+			exit;
+		}
 	}
 
-	private function render_facebook(): void {
-		// Discard anything already buffered (stray whitespace/newlines emitted
-		// by other plugins or the theme, gzip buffers, etc.) so the XML
-		// declaration is the very first byte. Otherwise XML parsers reject the
-		// feed with "XML declaration allowed only at the start of the document".
-		while ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-
+	private function render_hotels(): void {
 		$opts     = Settings::all();
-		$currency = strtoupper( trim( (string) ( $opts['feed_currency'] ?? 'ZAR' ) ) );
-		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
-			$currency = 'ZAR';
-		}
-		$brand = trim( (string) ( $opts['feed_brand'] ?? '' ) );
+		$currency = $this->currency( $opts );
+		$brand    = trim( (string) ( $opts['feed_brand'] ?? '' ) );
 		if ( $brand === '' ) {
 			$brand = (string) get_bloginfo( 'name' );
 		}
 		$country = trim( (string) ( $opts['feed_country'] ?? '' ) );
 
 		$rows = Repository::hotel_rows();
-
-		nocache_headers();
-		if ( ! headers_sent() ) {
-			header( 'Content-Type: application/xml; charset=utf-8' );
-		}
-
-		echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		echo "<listings>\n";
-		printf( "<title>%s</title>\n", $this->cdata( (string) get_bloginfo( 'name' ) ) );
+		$this->begin_xml();
 
 		foreach ( $rows as $row ) {
 			// Meta requires every hotel to carry a location (latitude/longitude),
@@ -131,15 +121,9 @@ class Feed {
 			if ( $row['image'] === '' || $row['lat'] === null || $row['lng'] === null ) {
 				continue;
 			}
-
-			$price = $row['price'];
-			$sale  = $row['sale_price'];
-			if ( $price === null && $sale === null ) {
+			$price = $this->base_price( $row );
+			if ( $price === null ) {
 				continue;
-			}
-			// base_price is the lowest available rate.
-			if ( $price === null || ( $sale !== null && $sale < $price ) ) {
-				$price = $sale;
 			}
 
 			$description = $row['description'] !== '' ? $row['description'] : $row['name'];
@@ -151,26 +135,11 @@ class Feed {
 			printf( "<brand>%s</brand>\n", $this->cdata( $brand ) );
 			printf( "<latitude>%s</latitude>\n", esc_html( (string) $row['lat'] ) );
 			printf( "<longitude>%s</longitude>\n", esc_html( (string) $row['lng'] ) );
-
-			echo "<address format=\"simple\">\n";
-			if ( $row['addr1'] !== '' ) {
-				printf( "<component name=\"addr1\">%s</component>\n", $this->cdata( $row['addr1'] ) );
-			}
-			if ( $row['city'] !== '' ) {
-				printf( "<component name=\"city\">%s</component>\n", $this->cdata( $row['city'] ) );
-			}
-			if ( $row['region'] !== '' ) {
-				printf( "<component name=\"region\">%s</component>\n", $this->cdata( $row['region'] ) );
-			}
-			if ( $country !== '' ) {
-				printf( "<component name=\"country\">%s</component>\n", $this->cdata( $country ) );
-			}
-			echo "</address>\n";
-
+			$this->echo_address( $row, $country );
 			if ( $row['neighborhood'] !== '' ) {
 				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['neighborhood'] ) );
 			}
-			printf( "<base_price>%s</base_price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
+			printf( "<base_price>%s</base_price>\n", esc_html( $this->money( $price, $currency ) ) );
 			printf( "<url>%s</url>\n", esc_url( $row['url'] ) );
 			echo "<image>\n";
 			printf( "<url>%s</url>\n", esc_url( $row['image'] ) );
@@ -182,6 +151,101 @@ class Feed {
 		}
 
 		echo "</listings>\n";
+	}
+
+	private function render_destinations(): void {
+		$opts     = Settings::all();
+		$currency = $this->currency( $opts );
+		$country  = trim( (string) ( $opts['feed_country'] ?? '' ) );
+
+		$rows = Repository::hotel_rows();
+		$this->begin_xml();
+
+		foreach ( $rows as $row ) {
+			// A destination needs a location and an image; price is optional but
+			// included when available.
+			if ( $row['image'] === '' || $row['lat'] === null || $row['lng'] === null ) {
+				continue;
+			}
+			$price       = $this->base_price( $row );
+			$description = $row['description'] !== '' ? $row['description'] : $row['name'];
+
+			echo "<listing>\n";
+			printf( "<destination_id>%d</destination_id>\n", (int) $row['id'] );
+			printf( "<name>%s</name>\n", $this->cdata( $row['name'] ) );
+			printf( "<description>%s</description>\n", $this->cdata( $description ) );
+			printf( "<latitude>%s</latitude>\n", esc_html( (string) $row['lat'] ) );
+			printf( "<longitude>%s</longitude>\n", esc_html( (string) $row['lng'] ) );
+			$this->echo_address( $row, $country );
+			if ( $row['neighborhood'] !== '' ) {
+				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['neighborhood'] ) );
+			}
+			if ( $price !== null ) {
+				printf( "<price>%s</price>\n", esc_html( $this->money( $price, $currency ) ) );
+			}
+			printf( "<url>%s</url>\n", esc_url( $row['url'] ) );
+			echo "<image>\n";
+			printf( "<url>%s</url>\n", esc_url( $row['image'] ) );
+			echo "</image>\n";
+			echo "</listing>\n";
+		}
+
+		echo "</listings>\n";
+	}
+
+	/**
+	 * Shared preamble: discard any buffered output (stray whitespace would make
+	 * XML parsers reject the feed with "XML declaration allowed only at the
+	 * start of the document"), send headers and open the <listings> root.
+	 */
+	private function begin_xml(): void {
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+
+		nocache_headers();
+		if ( ! headers_sent() ) {
+			header( 'Content-Type: application/xml; charset=utf-8' );
+		}
+
+		echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		echo "<listings>\n";
+		printf( "<title>%s</title>\n", $this->cdata( (string) get_bloginfo( 'name' ) ) );
+	}
+
+	private function echo_address( array $row, string $country ): void {
+		echo "<address format=\"simple\">\n";
+		if ( $row['addr1'] !== '' ) {
+			printf( "<component name=\"addr1\">%s</component>\n", $this->cdata( $row['addr1'] ) );
+		}
+		if ( $row['city'] !== '' ) {
+			printf( "<component name=\"city\">%s</component>\n", $this->cdata( $row['city'] ) );
+		}
+		if ( $row['region'] !== '' ) {
+			printf( "<component name=\"region\">%s</component>\n", $this->cdata( $row['region'] ) );
+		}
+		if ( $country !== '' ) {
+			printf( "<component name=\"country\">%s</component>\n", $this->cdata( $country ) );
+		}
+		echo "</address>\n";
+	}
+
+	/** Lowest available rate for a row: special when it undercuts normal. */
+	private function base_price( array $row ): ?float {
+		$price = $row['price'];
+		$sale  = $row['sale_price'];
+		if ( $price === null && $sale === null ) {
+			return null;
+		}
+		if ( $price === null || ( $sale !== null && $sale < $price ) ) {
+			$price = $sale;
+		}
+		return $price !== null ? (float) $price : null;
+	}
+
+	private function currency( array $opts ): string {
+		$currency = strtoupper( trim( (string) ( $opts['feed_currency'] ?? 'ZAR' ) ) );
+		return preg_match( '/^[A-Z]{3}$/', $currency ) ? $currency : 'ZAR';
 	}
 
 	private function money( float $amount, string $currency ): string {

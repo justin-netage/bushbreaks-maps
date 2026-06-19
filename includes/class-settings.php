@@ -521,19 +521,29 @@ class Settings {
 				</div>
 
 				<div class="bbm-tab-content" data-tab="feed">
-					<h2><?php esc_html_e( 'Meta Hotel catalog feed', 'bushbreaks-maps' ); ?></h2>
-					<p><?php esc_html_e( 'A Hotel catalog feed built from your accommodation listings, in Meta\'s hotel feed format (hotel_id, name, address, latitude/longitude, base_price, image). Add it as a Hotels catalog data source in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
+					<h2><?php esc_html_e( 'Meta travel catalog feeds', 'bushbreaks-maps' ); ?></h2>
+					<p><?php esc_html_e( 'Two feeds built from your accommodation listings, in Meta\'s travel catalog XML format. Each lodge appears in both. Add each URL to the matching catalog type in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
 					<table class="form-table" role="presentation">
 						<tr>
-							<th><?php esc_html_e( 'Feed URL', 'bushbreaks-maps' ); ?></th>
+							<th><?php esc_html_e( 'Hotels feed URL', 'bushbreaks-maps' ); ?></th>
 							<td>
-								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url() ); ?>">
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'facebook' ) ); ?>">
 								<p class="description">
-									<?php esc_html_e( 'In Commerce Manager, create a Hotels catalog → Data sources → "Scheduled feed" and paste this URL. Facebook re-fetches it on its own cadence.', 'bushbreaks-maps' ); ?>
-									<a href="<?php echo esc_url( Feed::feed_url() ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+									<?php esc_html_e( 'Add to a Hotels catalog → Data sources → "Scheduled feed".', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url( 'facebook' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Destinations feed URL', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'destinations' ) ); ?>">
+								<p class="description">
+									<?php esc_html_e( 'Add to a Destinations catalog → Data sources → "Scheduled feed".', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url( 'destinations' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
 								</p>
 								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
-									<p class="description"><em><?php esc_html_e( 'Tip: enable pretty permalinks (Settings → Permalinks) for a cleaner /bushbreaks-feed/facebook.xml URL.', 'bushbreaks-maps' ); ?></em></p>
+									<p class="description"><em><?php esc_html_e( 'Tip: enable pretty permalinks (Settings → Permalinks) for cleaner /bushbreaks-feed/*.xml URLs.', 'bushbreaks-maps' ); ?></em></p>
 								<?php endif; ?>
 							</td>
 						</tr>
