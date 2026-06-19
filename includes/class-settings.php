@@ -29,6 +29,10 @@ class Settings {
 			'currency_symbol'     => 'R',
 			'feed_currency'       => 'ZAR',
 			'feed_brand'          => '',
+			'feed_availability'   => 'in stock',
+			'feed_condition'      => 'new',
+			'feed_google_category'     => '',
+			'feed_region_product_type' => false,
 			'primary_color'       => '#8AD000',
 			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
@@ -59,6 +63,16 @@ class Settings {
 		$opts = get_option( self::OPTION_KEY, [] );
 		$opts = is_array( $opts ) ? $opts : [];
 		return array_merge( self::defaults(), $opts );
+	}
+
+	/** Allowed g:availability values (Facebook / Google product spec). */
+	public static function feed_availability_options(): array {
+		return [ 'in stock', 'out of stock', 'available for order', 'preorder', 'discontinued' ];
+	}
+
+	/** Allowed g:condition values (Facebook / Google product spec). */
+	public static function feed_condition_options(): array {
+		return [ 'new', 'used', 'refurbished' ];
 	}
 
 	public function register(): void {
@@ -134,7 +148,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_google_category', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -170,6 +184,17 @@ class Settings {
 			$code = strtoupper( trim( (string) $input['feed_currency'] ) );
 			$out['feed_currency'] = preg_match( '/^[A-Z]{3}$/', $code ) ? $code : 'ZAR';
 		}
+
+		if ( isset( $input['feed_availability'] ) ) {
+			$val = sanitize_text_field( (string) $input['feed_availability'] );
+			$out['feed_availability'] = in_array( $val, self::feed_availability_options(), true ) ? $val : 'in stock';
+		}
+		if ( isset( $input['feed_condition'] ) ) {
+			$val = sanitize_text_field( (string) $input['feed_condition'] );
+			$out['feed_condition'] = in_array( $val, self::feed_condition_options(), true ) ? $val : 'new';
+		}
+
+		$out['feed_region_product_type'] = ! empty( $input['feed_region_product_type'] );
 
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
 
@@ -546,6 +571,45 @@ class Settings {
 							<td>
 								<input id="bbm_feed_brand" name="<?php echo $option_attr; ?>[feed_brand]" type="text" value="<?php echo esc_attr( $opts['feed_brand'] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( (string) get_bloginfo( 'name' ) ); ?>">
 								<p class="description"><?php esc_html_e( 'Brand applied to every item. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_availability"><?php esc_html_e( 'Availability', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<select id="bbm_feed_availability" name="<?php echo $option_attr; ?>[feed_availability]">
+									<?php foreach ( self::feed_availability_options() as $val ) : ?>
+										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $opts['feed_availability'], $val ); ?>><?php echo esc_html( $val ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<p class="description"><?php esc_html_e( 'Applied to every item.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_condition"><?php esc_html_e( 'Condition', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<select id="bbm_feed_condition" name="<?php echo $option_attr; ?>[feed_condition]">
+									<?php foreach ( self::feed_condition_options() as $val ) : ?>
+										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $opts['feed_condition'], $val ); ?>><?php echo esc_html( $val ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<p class="description"><?php esc_html_e( 'Applied to every item.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_google_category"><?php esc_html_e( 'Google product category', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_google_category" name="<?php echo $option_attr; ?>[feed_google_category]" type="text" value="<?php echo esc_attr( $opts['feed_google_category'] ); ?>" class="large-text" placeholder="Travel &amp; Luggage &gt; Travel Accessories">
+								<p class="description"><?php esc_html_e( 'Optional. Applied to every item as g:google_product_category — a category path or the numeric Google taxonomy ID. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Region as product type', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<label for="bbm_feed_region_pt">
+									<input id="bbm_feed_region_pt" name="<?php echo $option_attr; ?>[feed_region_product_type]" type="checkbox" value="1" <?php checked( ! empty( $opts['feed_region_product_type'] ) ); ?>>
+									<?php esc_html_e( 'Use each listing\'s region/reserve as its g:product_type', 'bushbreaks-maps' ); ?>
+								</label>
+								<p class="description"><?php esc_html_e( 'Outputs the destination taxonomy term (with its parent path, e.g. "Limpopo > Kruger National Park") so the catalogue groups by destination.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 					</table>

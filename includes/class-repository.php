@@ -446,6 +446,10 @@ class Repository {
 		$normal_field  = (string) ( $opts['normal_price_field']  ?? '' );
 		$special_field = (string) ( $opts['special_price_field'] ?? '' );
 
+		$region_pt = ! empty( $opts['feed_region_product_type'] );
+		$dest_tax  = (string) ( $opts['destination_taxonomy'] ?? '' );
+		$region_pt = $region_pt && $dest_tax !== '' && taxonomy_exists( $dest_tax );
+
 		$rows = [];
 		foreach ( $query->posts as $post ) {
 			// Feeds want the largest available image, so request 'full'.
@@ -463,18 +467,58 @@ class Repository {
 			$description = trim( wp_strip_all_tags( (string) $description ) );
 
 			$rows[] = [
-				'id'          => (int) $post->ID,
-				'title'       => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'description' => html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'link'        => (string) get_permalink( $post ),
-				'image'       => $image ?: '',
-				'price'       => $normal,
-				'sale_price'  => $special,
+				'id'           => (int) $post->ID,
+				'title'        => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'description'  => html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'link'         => (string) get_permalink( $post ),
+				'image'        => $image ?: '',
+				'price'        => $normal,
+				'sale_price'   => $special,
+				'product_type' => $region_pt ? self::region_product_type( $post->ID, $dest_tax ) : '',
 			];
 		}
 
 		wp_reset_postdata();
 		return $rows;
+	}
+
+	/**
+	 * Build a product_type path from the destination taxonomy: takes the most
+	 * specific term assigned to the post and prefixes its ancestor names,
+	 * e.g. "Limpopo > Kruger National Park". Empty when none assigned.
+	 */
+	private static function region_product_type( int $post_id, string $taxonomy ): string {
+		$terms = get_the_terms( $post_id, $taxonomy );
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return '';
+		}
+
+		// Prefer the deepest term (most ancestors) so a lodge tagged with both
+		// a region and its reserve yields the full reserve path.
+		$chosen     = null;
+		$chosen_anc = -1;
+		foreach ( $terms as $term ) {
+			$anc = count( get_ancestors( $term->term_id, $taxonomy, 'taxonomy' ) );
+			if ( $anc > $chosen_anc ) {
+				$chosen     = $term;
+				$chosen_anc = $anc;
+			}
+		}
+		if ( $chosen === null ) {
+			return '';
+		}
+
+		$names     = [];
+		$ancestors = array_reverse( get_ancestors( $chosen->term_id, $taxonomy, 'taxonomy' ) );
+		foreach ( $ancestors as $aid ) {
+			$at = get_term( (int) $aid, $taxonomy );
+			if ( $at && ! is_wp_error( $at ) ) {
+				$names[] = $at->name;
+			}
+		}
+		$names[] = $chosen->name;
+
+		return implode( ' > ', $names );
 	}
 
 	private static function format_post( \WP_Post $post, array $opts ): ?array {
