@@ -23,17 +23,23 @@ class Feed {
 	public const QUERY_VAR = 'bbm_feed';
 
 	private const REWRITE_FLAG = 'bushbreaks_maps_feed_rewrites';
-	private const REWRITE_VER  = '1';
+	private const REWRITE_VER  = '2';
 
 	public function register(): void {
 		add_action( 'init', [ $this, 'add_rewrite_rule' ] );
 		add_filter( 'query_vars', [ $this, 'register_query_var' ] );
-		add_action( 'template_redirect', [ $this, 'maybe_render' ] );
+		// Cancel WordPress' canonical trailing-slash redirect for the feed:
+		// /facebook.xml must NOT 301 to /facebook.xml/ or crawlers that don't
+		// follow the redirect (and our own non-slashed rule) end up on a 404.
+		add_filter( 'redirect_canonical', [ $this, 'prevent_canonical_redirect' ], 10, 2 );
+		// Run before redirect_canonical (priority 10) so we render and exit
+		// before any other handler can redirect the request.
+		add_action( 'template_redirect', [ $this, 'maybe_render' ], 1 );
 	}
 
 	public function add_rewrite_rule(): void {
 		add_rewrite_rule(
-			'^bushbreaks-feed/facebook\.xml$',
+			'^bushbreaks-feed/facebook\.xml/?$',
 			'index.php?' . self::QUERY_VAR . '=facebook',
 			'top'
 		);
@@ -49,6 +55,18 @@ class Feed {
 	public function register_query_var( array $vars ): array {
 		$vars[] = self::QUERY_VAR;
 		return $vars;
+	}
+
+	/**
+	 * Bail out of WordPress' canonical redirect when the feed is being
+	 * requested, so the .xml URL is served directly instead of 301'd to a
+	 * trailing-slash variant.
+	 */
+	public function prevent_canonical_redirect( $redirect_url, $requested_url ) {
+		if ( (string) get_query_var( self::QUERY_VAR ) !== '' ) {
+			return false;
+		}
+		return $redirect_url;
 	}
 
 	/**
