@@ -29,10 +29,9 @@ class Settings {
 			'currency_symbol'     => 'R',
 			'feed_currency'       => 'ZAR',
 			'feed_brand'          => '',
-			'feed_availability'   => 'in stock',
-			'feed_condition'      => 'new',
-			'feed_google_category'     => '',
-			'feed_region_product_type' => false,
+			'feed_country'        => 'South Africa',
+			'feed_city_field'        => '',
+			'feed_star_rating_field' => '',
 			'primary_color'       => '#8AD000',
 			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
@@ -63,16 +62,6 @@ class Settings {
 		$opts = get_option( self::OPTION_KEY, [] );
 		$opts = is_array( $opts ) ? $opts : [];
 		return array_merge( self::defaults(), $opts );
-	}
-
-	/** Allowed g:availability values (Facebook / Google product spec). */
-	public static function feed_availability_options(): array {
-		return [ 'in stock', 'out of stock', 'available for order', 'preorder', 'discontinued' ];
-	}
-
-	/** Allowed g:condition values (Facebook / Google product spec). */
-	public static function feed_condition_options(): array {
-		return [ 'new', 'used', 'refurbished' ];
 	}
 
 	public function register(): void {
@@ -148,7 +137,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_google_category', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -184,17 +173,6 @@ class Settings {
 			$code = strtoupper( trim( (string) $input['feed_currency'] ) );
 			$out['feed_currency'] = preg_match( '/^[A-Z]{3}$/', $code ) ? $code : 'ZAR';
 		}
-
-		if ( isset( $input['feed_availability'] ) ) {
-			$val = sanitize_text_field( (string) $input['feed_availability'] );
-			$out['feed_availability'] = in_array( $val, self::feed_availability_options(), true ) ? $val : 'in stock';
-		}
-		if ( isset( $input['feed_condition'] ) ) {
-			$val = sanitize_text_field( (string) $input['feed_condition'] );
-			$out['feed_condition'] = in_array( $val, self::feed_condition_options(), true ) ? $val : 'new';
-		}
-
-		$out['feed_region_product_type'] = ! empty( $input['feed_region_product_type'] );
 
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
 
@@ -543,15 +521,15 @@ class Settings {
 				</div>
 
 				<div class="bbm-tab-content" data-tab="feed">
-					<h2><?php esc_html_e( 'Facebook / Meta product feed', 'bushbreaks-maps' ); ?></h2>
-					<p><?php esc_html_e( 'A product catalog feed built from your accommodation listings. The same XML works for Meta Commerce Manager, Google Merchant Center and Pinterest catalogues.', 'bushbreaks-maps' ); ?></p>
+					<h2><?php esc_html_e( 'Meta Hotel catalog feed', 'bushbreaks-maps' ); ?></h2>
+					<p><?php esc_html_e( 'A Hotel catalog feed built from your accommodation listings, in Meta\'s hotel feed format (hotel_id, name, address, latitude/longitude, base_price, image). Add it as a Hotels catalog data source in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th><?php esc_html_e( 'Feed URL', 'bushbreaks-maps' ); ?></th>
 							<td>
 								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url() ); ?>">
 								<p class="description">
-									<?php esc_html_e( 'In Commerce Manager → Catalog → Data sources, add a "Scheduled feed" and paste this URL. Facebook re-fetches it on its own cadence.', 'bushbreaks-maps' ); ?>
+									<?php esc_html_e( 'In Commerce Manager, create a Hotels catalog → Data sources → "Scheduled feed" and paste this URL. Facebook re-fetches it on its own cadence.', 'bushbreaks-maps' ); ?>
 									<a href="<?php echo esc_url( Feed::feed_url() ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
 								</p>
 								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
@@ -563,57 +541,39 @@ class Settings {
 							<th><label for="bbm_feed_currency"><?php esc_html_e( 'Feed currency (ISO code)', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_currency" name="<?php echo $option_attr; ?>[feed_currency]" type="text" maxlength="3" value="<?php echo esc_attr( $opts['feed_currency'] ); ?>" class="small-text" style="text-transform:uppercase;">
-								<p class="description"><?php esc_html_e( 'Three-letter ISO 4217 code Facebook requires for prices (e.g. ZAR, USD, EUR). Your on-site "R" symbol is display-only.', 'bushbreaks-maps' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Three-letter ISO 4217 code used for base_price (e.g. ZAR, USD, EUR). Your on-site "R" symbol is display-only.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
 							<th><label for="bbm_feed_brand"><?php esc_html_e( 'Brand', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_brand" name="<?php echo $option_attr; ?>[feed_brand]" type="text" value="<?php echo esc_attr( $opts['feed_brand'] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( (string) get_bloginfo( 'name' ) ); ?>">
-								<p class="description"><?php esc_html_e( 'Brand applied to every item. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Brand applied to every hotel. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
-							<th><label for="bbm_feed_availability"><?php esc_html_e( 'Availability', 'bushbreaks-maps' ); ?></label></th>
+							<th><label for="bbm_feed_country"><?php esc_html_e( 'Country', 'bushbreaks-maps' ); ?></label></th>
 							<td>
-								<select id="bbm_feed_availability" name="<?php echo $option_attr; ?>[feed_availability]">
-									<?php foreach ( self::feed_availability_options() as $val ) : ?>
-										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $opts['feed_availability'], $val ); ?>><?php echo esc_html( $val ); ?></option>
-									<?php endforeach; ?>
-								</select>
-								<p class="description"><?php esc_html_e( 'Applied to every item.', 'bushbreaks-maps' ); ?></p>
+								<input id="bbm_feed_country" name="<?php echo $option_attr; ?>[feed_country]" type="text" value="<?php echo esc_attr( $opts['feed_country'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Applied to every hotel\'s address. Region comes from the top-level destination term and neighborhood from the reserve/sub-term automatically.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
-							<th><label for="bbm_feed_condition"><?php esc_html_e( 'Condition', 'bushbreaks-maps' ); ?></label></th>
+							<th><label for="bbm_feed_city_field"><?php esc_html_e( 'City field (optional)', 'bushbreaks-maps' ); ?></label></th>
 							<td>
-								<select id="bbm_feed_condition" name="<?php echo $option_attr; ?>[feed_condition]">
-									<?php foreach ( self::feed_condition_options() as $val ) : ?>
-										<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $opts['feed_condition'], $val ); ?>><?php echo esc_html( $val ); ?></option>
-									<?php endforeach; ?>
-								</select>
-								<p class="description"><?php esc_html_e( 'Applied to every item.', 'bushbreaks-maps' ); ?></p>
+								<input id="bbm_feed_city_field" name="<?php echo $option_attr; ?>[feed_city_field]" type="text" value="<?php echo esc_attr( $opts['feed_city_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods meta field holding the town/city for the address. Leave empty if you don\'t store one — latitude/longitude still pin the hotel.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
-							<th><label for="bbm_feed_google_category"><?php esc_html_e( 'Google product category', 'bushbreaks-maps' ); ?></label></th>
+							<th><label for="bbm_feed_star_field"><?php esc_html_e( 'Star rating field (optional)', 'bushbreaks-maps' ); ?></label></th>
 							<td>
-								<input id="bbm_feed_google_category" name="<?php echo $option_attr; ?>[feed_google_category]" type="text" value="<?php echo esc_attr( $opts['feed_google_category'] ); ?>" class="large-text" placeholder="Travel &amp; Luggage &gt; Travel Accessories">
-								<p class="description"><?php esc_html_e( 'Optional. Applied to every item as g:google_product_category — a category path or the numeric Google taxonomy ID. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
-							</td>
-						</tr>
-						<tr>
-							<th><?php esc_html_e( 'Region as product type', 'bushbreaks-maps' ); ?></th>
-							<td>
-								<label for="bbm_feed_region_pt">
-									<input id="bbm_feed_region_pt" name="<?php echo $option_attr; ?>[feed_region_product_type]" type="checkbox" value="1" <?php checked( ! empty( $opts['feed_region_product_type'] ) ); ?>>
-									<?php esc_html_e( 'Use each listing\'s region/reserve as its g:product_type', 'bushbreaks-maps' ); ?>
-								</label>
-								<p class="description"><?php esc_html_e( 'Outputs the destination taxonomy term (with its parent path, e.g. "Limpopo > Kruger National Park") so the catalogue groups by destination.', 'bushbreaks-maps' ); ?></p>
+								<input id="bbm_feed_star_field" name="<?php echo $option_attr; ?>[feed_star_rating_field]" type="text" value="<?php echo esc_attr( $opts['feed_star_rating_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods meta field holding a numeric star rating (e.g. 4 or 4.5). Output as star_rating when present.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 					</table>
-					<p class="description"><?php esc_html_e( 'Listings without both an image and a price are skipped, since Facebook rejects products missing either.', 'bushbreaks-maps' ); ?></p>
+					<p class="description"><?php esc_html_e( 'Listings without coordinates, an image, or a price are skipped — Meta requires a location, image and base_price for every hotel.', 'bushbreaks-maps' ); ?></p>
 				</div>
 
 				<p class="submit bbm-submit-row">
