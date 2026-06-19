@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.18
+Stable tag: 0.9.19
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.19 =
+* Each feed now includes an XML comment with the generating plugin version (e.g. <!-- Bushbreaks Maps 0.9.19 -->), so you can confirm at a glance whether a plugin update and cache purge have taken effect.
 
 = 0.9.18 =
 * Destination taxonomy is now read as a three-level hierarchy Country > Province > Reserve. The address region and Hotels/Destinations neighborhood, and the Products feed custom_label_0 (province) and custom_label_1 (reserve), all map by level. The address country prefers the taxonomy's top-level term, falling back to the Country setting.

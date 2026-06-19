@@ -315,6 +315,9 @@ class Feed {
 		}
 
 		echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+		// Version stamp so the generating plugin version is visible in the feed
+		// (helps confirm an update/cache purge actually took effect).
+		echo '<!-- Bushbreaks Maps ' . esc_html( BUSHBREAKS_MAPS_VERSION ) . ' -->' . "\n";
 	}
 
 	private function echo_address( array $row, string $country ): void {
