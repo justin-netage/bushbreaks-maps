@@ -14,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    Meta travel XML: destination_id, name, address, lat/long, price, image…
  *  - Products feed     /bushbreaks-feed/products.xml      (?bbm_feed=products)
  *    RSS 2.0 + Google product namespace, enriched with product_type
- *    (categories) and custom_label_0/1/2 (province, reserve, categories).
+ *    (Holiday Destinations) and custom_label_0-3 (province, reserve,
+ *    categories, features).
  *
  * Each lodge is one entry in every feed. Paste a URL into Commerce Manager →
  * the matching catalog type → Data sources → "Scheduled feed".
@@ -147,8 +148,8 @@ class Feed {
 			printf( "<latitude>%s</latitude>\n", esc_html( (string) $row['lat'] ) );
 			printf( "<longitude>%s</longitude>\n", esc_html( (string) $row['lng'] ) );
 			$this->echo_address( $row, $country );
-			if ( $row['neighborhood'] !== '' ) {
-				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['neighborhood'] ) );
+			if ( $row['reserve'] !== '' ) {
+				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['reserve'] ) );
 			}
 			printf( "<base_price>%s</base_price>\n", esc_html( $this->money( $price, $currency ) ) );
 			printf( "<url>%s</url>\n", esc_url( $row['url'] ) );
@@ -188,8 +189,8 @@ class Feed {
 			printf( "<latitude>%s</latitude>\n", esc_html( (string) $row['lat'] ) );
 			printf( "<longitude>%s</longitude>\n", esc_html( (string) $row['lng'] ) );
 			$this->echo_address( $row, $country );
-			if ( $row['neighborhood'] !== '' ) {
-				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['neighborhood'] ) );
+			if ( $row['reserve'] !== '' ) {
+				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['reserve'] ) );
 			}
 			if ( $price !== null ) {
 				printf( "<price>%s</price>\n", esc_html( $this->money( $price, $currency ) ) );
@@ -262,12 +263,13 @@ class Feed {
 				printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( $product_type ) );
 			}
 
-			// Location, reserve and categories as custom labels for ad-set filters.
-			if ( $row['addr1'] !== '' ) {
-				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $row['addr1'] ) );
+			// Province, reserve, categories and features as custom labels for
+			// ad-set filters.
+			if ( $row['province'] !== '' ) {
+				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $row['province'] ) );
 			}
-			if ( $row['neighborhood'] !== '' ) {
-				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $row['neighborhood'] ) );
+			if ( $row['reserve'] !== '' ) {
+				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $row['reserve'] ) );
 			}
 			if ( ! empty( $row['categories'] ) ) {
 				printf( "<g:custom_label_2>%s</g:custom_label_2>\n", $this->cdata( implode( ', ', (array) $row['categories'] ) ) );
@@ -316,6 +318,12 @@ class Feed {
 	}
 
 	private function echo_address( array $row, string $country ): void {
+		// Prefer the country from the destination taxonomy; fall back to the
+		// configured default.
+		if ( ! empty( $row['country'] ) ) {
+			$country = (string) $row['country'];
+		}
+
 		echo "<address format=\"simple\">\n";
 		if ( $row['addr1'] !== '' ) {
 			printf( "<component name=\"addr1\">%s</component>\n", $this->cdata( $row['addr1'] ) );
@@ -323,8 +331,8 @@ class Feed {
 		if ( $row['city'] !== '' ) {
 			printf( "<component name=\"city\">%s</component>\n", $this->cdata( $row['city'] ) );
 		}
-		if ( $row['region'] !== '' ) {
-			printf( "<component name=\"region\">%s</component>\n", $this->cdata( $row['region'] ) );
+		if ( $row['province'] !== '' ) {
+			printf( "<component name=\"region\">%s</component>\n", $this->cdata( $row['province'] ) );
 		}
 		if ( $country !== '' ) {
 			printf( "<component name=\"country\">%s</component>\n", $this->cdata( $country ) );
