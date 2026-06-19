@@ -423,13 +423,13 @@ class Repository {
 	}
 
 	/**
-	 * Flatten every published listing into the raw fields a product feed
-	 * needs (Facebook/Meta, Google Merchant, Pinterest). Unlike query(),
-	 * this does NOT require coordinates — a listing without a map pin is
-	 * still a sellable product. Prices are returned as raw floats (or null)
-	 * so the caller can format them per the feed spec.
+	 * Flatten every published listing into the raw fields the Meta Hotel
+	 * catalog feed needs. Prices are raw floats (or null); coordinates are
+	 * floats (or null) and the caller decides whether a missing location
+	 * disqualifies the listing. Region/neighbourhood are derived from the
+	 * destination taxonomy hierarchy.
 	 */
-	public static function feed_rows(): array {
+	public static function hotel_rows(): array {
 		$opts = Settings::all();
 
 		$query = new \WP_Query(
@@ -443,23 +443,49 @@ class Repository {
 			]
 		);
 
+		$lat_field     = (string) ( $opts['lat_field']           ?? '' );
+		$lng_field     = (string) ( $opts['lng_field']           ?? '' );
+		$addr_field    = (string) ( $opts['address_field']       ?? '' );
+		$loc_field     = (string) ( $opts['location_field']      ?? '' );
+		$city_field    = (string) ( $opts['feed_city_field']     ?? '' );
+		$star_field    = (string) ( $opts['feed_star_rating_field'] ?? '' );
 		$normal_field  = (string) ( $opts['normal_price_field']  ?? '' );
 		$special_field = (string) ( $opts['special_price_field'] ?? '' );
-
-		$region_pt = ! empty( $opts['feed_region_product_type'] );
-		$dest_tax  = (string) ( $opts['destination_taxonomy'] ?? '' );
-		$region_pt = $region_pt && $dest_tax !== '' && taxonomy_exists( $dest_tax );
+		$dest_tax      = (string) ( $opts['destination_taxonomy'] ?? '' );
 
 		$rows = [];
 		foreach ( $query->posts as $post ) {
-			// Feeds want the largest available image, so request 'full'.
 			$image = self::resolve_image( $post->ID, (string) ( $opts['image_field'] ?? '' ), 'full' );
 			if ( $image === '' ) {
 				$image = (string) get_the_post_thumbnail_url( $post->ID, 'full' );
 			}
 
+			$lat = $lat_field !== '' ? get_post_meta( $post->ID, $lat_field, true ) : '';
+			$lng = $lng_field !== '' ? get_post_meta( $post->ID, $lng_field, true ) : '';
+			$lat = is_numeric( $lat ) ? (float) $lat : null;
+			$lng = is_numeric( $lng ) ? (float) $lng : null;
+
 			$normal  = $normal_field  !== '' ? self::parse_amount( get_post_meta( $post->ID, $normal_field,  true ) ) : null;
 			$special = $special_field !== '' ? self::parse_amount( get_post_meta( $post->ID, $special_field, true ) ) : null;
+
+			// Street/address line: prefer a dedicated address field, fall back
+			// to the geocoded location text.
+			$addr1 = $addr_field !== '' ? (string) get_post_meta( $post->ID, $addr_field, true ) : '';
+			if ( $addr1 === '' && $loc_field !== '' ) {
+				$addr1 = (string) get_post_meta( $post->ID, $loc_field, true );
+			}
+
+			$city = $city_field !== '' ? (string) get_post_meta( $post->ID, $city_field, true ) : '';
+
+			$star = null;
+			if ( $star_field !== '' ) {
+				$raw = get_post_meta( $post->ID, $star_field, true );
+				if ( is_numeric( $raw ) ) {
+					$star = (float) $raw;
+				}
+			}
+
+			$geo = self::destination_region_neighborhood( $post->ID, $dest_tax );
 
 			$description = has_excerpt( $post )
 				? get_the_excerpt( $post )
@@ -468,13 +494,19 @@ class Repository {
 
 			$rows[] = [
 				'id'           => (int) $post->ID,
-				'title'        => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'name'         => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'description'  => html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'link'         => (string) get_permalink( $post ),
+				'url'          => (string) get_permalink( $post ),
 				'image'        => $image ?: '',
+				'lat'          => $lat,
+				'lng'          => $lng,
 				'price'        => $normal,
 				'sale_price'   => $special,
-				'product_type' => $region_pt ? self::region_product_type( $post->ID, $dest_tax ) : '',
+				'addr1'        => trim( html_entity_decode( $addr1, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+				'city'         => trim( html_entity_decode( $city, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+				'region'       => $geo['region'],
+				'neighborhood' => $geo['neighborhood'],
+				'star_rating'  => $star,
 			];
 		}
 
@@ -483,18 +515,23 @@ class Repository {
 	}
 
 	/**
-	 * Build a product_type path from the destination taxonomy: takes the most
-	 * specific term assigned to the post and prefixes its ancestor names,
-	 * e.g. "Limpopo > Kruger National Park". Empty when none assigned.
+	 * Derive region + neighbourhood from the destination taxonomy. Takes the
+	 * most specific term assigned to the post: its top-level ancestor becomes
+	 * the region (e.g. "Limpopo") and the term itself the neighbourhood (e.g.
+	 * "Kruger National Park"). When the term is already top-level it is the
+	 * region with no neighbourhood.
 	 */
-	private static function region_product_type( int $post_id, string $taxonomy ): string {
-		$terms = get_the_terms( $post_id, $taxonomy );
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
-			return '';
+	private static function destination_region_neighborhood( int $post_id, string $taxonomy ): array {
+		$out = [ 'region' => '', 'neighborhood' => '' ];
+		if ( $taxonomy === '' || ! taxonomy_exists( $taxonomy ) ) {
+			return $out;
 		}
 
-		// Prefer the deepest term (most ancestors) so a lodge tagged with both
-		// a region and its reserve yields the full reserve path.
+		$terms = get_the_terms( $post_id, $taxonomy );
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return $out;
+		}
+
 		$chosen     = null;
 		$chosen_anc = -1;
 		foreach ( $terms as $term ) {
@@ -505,20 +542,22 @@ class Repository {
 			}
 		}
 		if ( $chosen === null ) {
-			return '';
+			return $out;
 		}
 
-		$names     = [];
-		$ancestors = array_reverse( get_ancestors( $chosen->term_id, $taxonomy, 'taxonomy' ) );
-		foreach ( $ancestors as $aid ) {
-			$at = get_term( (int) $aid, $taxonomy );
-			if ( $at && ! is_wp_error( $at ) ) {
-				$names[] = $at->name;
-			}
+		$ancestors = get_ancestors( $chosen->term_id, $taxonomy, 'taxonomy' );
+		if ( empty( $ancestors ) ) {
+			// Top-level term: it's the region.
+			$out['region'] = $chosen->name;
+			return $out;
 		}
-		$names[] = $chosen->name;
 
-		return implode( ' > ', $names );
+		$root = get_term( (int) end( $ancestors ), $taxonomy );
+		if ( $root && ! is_wp_error( $root ) ) {
+			$out['region'] = $root->name;
+		}
+		$out['neighborhood'] = $chosen->name;
+		return $out;
 	}
 
 	private static function format_post( \WP_Post $post, array $opts ): ?array {

@@ -6,16 +6,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Emits a Facebook / Meta product catalog feed built from the
- * accommodation listings. The output is RSS 2.0 with the Google product
- * namespace (`g:`) — the same schema Meta Commerce Manager, Google
- * Merchant Center and Pinterest catalogues all consume, so one feed URL
- * serves all three.
+ * Emits a Meta (Facebook) Hotel catalog feed built from the accommodation
+ * listings. Uses Meta's hotel feed XML schema: a <listings> root with one
+ * <listing> per lodge, carrying hotel_id, name, a structured <address>,
+ * latitude/longitude, base_price, url and image — the format Commerce
+ * Manager expects for a Hotels catalog / hotel ads.
  *
  * Feed URL (pretty permalinks):  {site}/bushbreaks-feed/facebook.xml
  * Feed URL (fallback, always on): {site}/?bbm_feed=facebook
  *
- * Paste the URL into Commerce Manager → Catalog → Data sources →
+ * Paste the URL into Commerce Manager → Catalog (Hotels) → Data sources →
  * "Scheduled feed" and Facebook will re-fetch it on its own cadence.
  */
 class Feed {
@@ -111,18 +111,9 @@ class Feed {
 		if ( $brand === '' ) {
 			$brand = (string) get_bloginfo( 'name' );
 		}
+		$country = trim( (string) ( $opts['feed_country'] ?? '' ) );
 
-		$availability = (string) ( $opts['feed_availability'] ?? 'in stock' );
-		if ( ! in_array( $availability, Settings::feed_availability_options(), true ) ) {
-			$availability = 'in stock';
-		}
-		$condition = (string) ( $opts['feed_condition'] ?? 'new' );
-		if ( ! in_array( $condition, Settings::feed_condition_options(), true ) ) {
-			$condition = 'new';
-		}
-		$google_category = trim( (string) ( $opts['feed_google_category'] ?? '' ) );
-
-		$rows = Repository::feed_rows();
+		$rows = Repository::hotel_rows();
 
 		nocache_headers();
 		if ( ! headers_sent() ) {
@@ -130,20 +121,14 @@ class Feed {
 		}
 
 		echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-		echo '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">' . "\n";
-		echo "<channel>\n";
+		echo "<listings>\n";
 		printf( "<title>%s</title>\n", $this->cdata( (string) get_bloginfo( 'name' ) ) );
-		printf( "<link>%s</link>\n", esc_url( home_url( '/' ) ) );
-		printf(
-			"<description>%s</description>\n",
-			$this->cdata( __( 'Accommodation listings product feed', 'bushbreaks-maps' ) )
-		);
 
 		foreach ( $rows as $row ) {
-			// Facebook rejects a product without an image_link or a price, so
-			// skip rows that can't form a valid item rather than poisoning the
-			// whole feed.
-			if ( $row['image'] === '' ) {
+			// Meta requires every hotel to carry a location (latitude/longitude),
+			// an image and a price. Skip rows that can't form a valid listing so
+			// the whole feed isn't rejected.
+			if ( $row['image'] === '' || $row['lat'] === null || $row['lng'] === null ) {
 				continue;
 			}
 
@@ -152,46 +137,62 @@ class Feed {
 			if ( $price === null && $sale === null ) {
 				continue;
 			}
-			// No standard price but a special exists -> the special is the price.
-			if ( $price === null && $sale !== null ) {
+			// base_price is the lowest available rate.
+			if ( $price === null || ( $sale !== null && $sale < $price ) ) {
 				$price = $sale;
-				$sale  = null;
-			}
-			// A "special" that isn't actually lower isn't a sale price.
-			if ( $sale !== null && $price !== null && $sale >= $price ) {
-				$sale = null;
 			}
 
-			$description = $row['description'] !== '' ? $row['description'] : $row['title'];
+			$description = $row['description'] !== '' ? $row['description'] : $row['name'];
 
-			echo "<item>\n";
-			printf( "<g:id>%d</g:id>\n", (int) $row['id'] );
-			printf( "<g:title>%s</g:title>\n", $this->cdata( $row['title'] ) );
-			printf( "<g:description>%s</g:description>\n", $this->cdata( $description ) );
-			printf( "<g:link>%s</g:link>\n", esc_url( $row['link'] ) );
-			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
-			printf( "<g:availability>%s</g:availability>\n", esc_html( $availability ) );
-			printf( "<g:condition>%s</g:condition>\n", esc_html( $condition ) );
-			printf( "<g:price>%s</g:price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
-			if ( $sale !== null ) {
-				printf( "<g:sale_price>%s</g:sale_price>\n", esc_html( $this->money( (float) $sale, $currency ) ) );
+			echo "<listing>\n";
+			printf( "<hotel_id>%d</hotel_id>\n", (int) $row['id'] );
+			printf( "<name>%s</name>\n", $this->cdata( $row['name'] ) );
+			printf( "<description>%s</description>\n", $this->cdata( $description ) );
+			printf( "<brand>%s</brand>\n", $this->cdata( $brand ) );
+			printf( "<latitude>%s</latitude>\n", esc_html( (string) $row['lat'] ) );
+			printf( "<longitude>%s</longitude>\n", esc_html( (string) $row['lng'] ) );
+
+			echo "<address format=\"simple\">\n";
+			if ( $row['addr1'] !== '' ) {
+				printf( "<component name=\"addr1\">%s</component>\n", $this->cdata( $row['addr1'] ) );
 			}
-			printf( "<g:brand>%s</g:brand>\n", $this->cdata( $brand ) );
-			if ( $google_category !== '' ) {
-				printf( "<g:google_product_category>%s</g:google_product_category>\n", $this->cdata( $google_category ) );
+			if ( $row['city'] !== '' ) {
+				printf( "<component name=\"city\">%s</component>\n", $this->cdata( $row['city'] ) );
 			}
-			if ( ! empty( $row['product_type'] ) ) {
-				printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( (string) $row['product_type'] ) );
+			if ( $row['region'] !== '' ) {
+				printf( "<component name=\"region\">%s</component>\n", $this->cdata( $row['region'] ) );
 			}
-			echo "</item>\n";
+			if ( $country !== '' ) {
+				printf( "<component name=\"country\">%s</component>\n", $this->cdata( $country ) );
+			}
+			echo "</address>\n";
+
+			if ( $row['neighborhood'] !== '' ) {
+				printf( "<neighborhood>%s</neighborhood>\n", $this->cdata( $row['neighborhood'] ) );
+			}
+			printf( "<base_price>%s</base_price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
+			printf( "<url>%s</url>\n", esc_url( $row['url'] ) );
+			echo "<image>\n";
+			printf( "<url>%s</url>\n", esc_url( $row['image'] ) );
+			echo "</image>\n";
+			if ( $row['star_rating'] !== null ) {
+				printf( "<star_rating>%s</star_rating>\n", esc_html( $this->format_star( (float) $row['star_rating'] ) ) );
+			}
+			echo "</listing>\n";
 		}
 
-		echo "</channel>\n";
-		echo "</rss>\n";
+		echo "</listings>\n";
 	}
 
 	private function money( float $amount, string $currency ): string {
 		return number_format( $amount, 2, '.', '' ) . ' ' . $currency;
+	}
+
+	private function format_star( float $rating ): string {
+		// Whole numbers without decimals, half-steps with one.
+		return ( floor( $rating ) === $rating )
+			? (string) (int) $rating
+			: number_format( $rating, 1, '.', '' );
 	}
 
 	private function cdata( string $value ): string {
