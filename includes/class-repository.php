@@ -454,6 +454,8 @@ class Repository {
 		$special_field = (string) ( $opts['special_price_field'] ?? '' );
 		$dest_tax      = (string) ( $opts['destination_taxonomy'] ?? '' );
 		$cat_tax       = (string) ( $opts['category_taxonomy'] ?? '' );
+		$features_src  = (string) ( $opts['feed_features_field'] ?? '' );
+		$desc_field    = (string) ( $opts['feed_description_field'] ?? '' );
 
 		$rows = [];
 		foreach ( $query->posts as $post ) {
@@ -489,10 +491,16 @@ class Repository {
 
 			$geo        = self::destination_region_neighborhood( $post->ID, $dest_tax );
 			$categories = self::term_names( $post->ID, $cat_tax );
+			$features   = self::feature_label( $post->ID, $features_src );
 
-			$description = has_excerpt( $post )
-				? get_the_excerpt( $post )
-				: wp_trim_words( wp_strip_all_tags( $post->post_content ), 60 );
+			// Prefer the configured description field (e.g. "About Lodge");
+			// fall back to the excerpt, then trimmed content.
+			$description = $desc_field !== '' ? (string) get_post_meta( $post->ID, $desc_field, true ) : '';
+			if ( trim( wp_strip_all_tags( $description ) ) === '' ) {
+				$description = has_excerpt( $post )
+					? get_the_excerpt( $post )
+					: wp_trim_words( wp_strip_all_tags( $post->post_content ), 60 );
+			}
 			$description = trim( wp_strip_all_tags( (string) $description ) );
 
 			$rows[] = [
@@ -510,6 +518,7 @@ class Repository {
 				'region'       => $geo['region'],
 				'neighborhood' => $geo['neighborhood'],
 				'categories'   => $categories,
+				'features'     => $features,
 				'star_rating'  => $star,
 			];
 		}
@@ -581,6 +590,52 @@ class Repository {
 			}
 		}
 		return $names;
+	}
+
+	/**
+	 * Resolve the "features" source to a single comma-separated string. The
+	 * source can be a taxonomy slug (term names) or a Pods/meta field holding
+	 * a repeatable list, a multi-line string or a plain value.
+	 */
+	private static function feature_label( int $post_id, string $source ): string {
+		if ( $source === '' ) {
+			return '';
+		}
+
+		if ( taxonomy_exists( $source ) ) {
+			return implode( ', ', self::term_names( $post_id, $source ) );
+		}
+
+		$raw = get_post_meta( $post_id, $source, true );
+
+		$parts = [];
+		if ( is_array( $raw ) ) {
+			foreach ( $raw as $v ) {
+				if ( is_scalar( $v ) ) {
+					$parts[] = (string) $v;
+				} elseif ( is_array( $v ) ) {
+					// Pods relationship/file arrays expose a name/title.
+					$parts[] = (string) ( $v['name'] ?? $v['post_title'] ?? $v['title'] ?? '' );
+				}
+			}
+		} elseif ( is_scalar( $raw ) ) {
+			// Split multi-line entries into separate features.
+			$parts = preg_split( '/[\r\n]+/', (string) $raw ) ?: [];
+		}
+
+		$parts = array_filter(
+			array_map(
+				static function ( $p ) {
+					return trim( html_entity_decode( (string) $p, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+				},
+				$parts
+			),
+			static function ( $p ) {
+				return $p !== '';
+			}
+		);
+
+		return implode( ', ', $parts );
 	}
 
 	private static function format_post( \WP_Post $post, array $opts ): ?array {
