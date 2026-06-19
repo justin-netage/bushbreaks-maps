@@ -422,6 +422,61 @@ class Repository {
 		return $missing;
 	}
 
+	/**
+	 * Flatten every published listing into the raw fields a product feed
+	 * needs (Facebook/Meta, Google Merchant, Pinterest). Unlike query(),
+	 * this does NOT require coordinates — a listing without a map pin is
+	 * still a sellable product. Prices are returned as raw floats (or null)
+	 * so the caller can format them per the feed spec.
+	 */
+	public static function feed_rows(): array {
+		$opts = Settings::all();
+
+		$query = new \WP_Query(
+			[
+				'post_type'      => $opts['post_type'],
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+			]
+		);
+
+		$normal_field  = (string) ( $opts['normal_price_field']  ?? '' );
+		$special_field = (string) ( $opts['special_price_field'] ?? '' );
+
+		$rows = [];
+		foreach ( $query->posts as $post ) {
+			// Feeds want the largest available image, so request 'full'.
+			$image = self::resolve_image( $post->ID, (string) ( $opts['image_field'] ?? '' ), 'full' );
+			if ( $image === '' ) {
+				$image = (string) get_the_post_thumbnail_url( $post->ID, 'full' );
+			}
+
+			$normal  = $normal_field  !== '' ? self::parse_amount( get_post_meta( $post->ID, $normal_field,  true ) ) : null;
+			$special = $special_field !== '' ? self::parse_amount( get_post_meta( $post->ID, $special_field, true ) ) : null;
+
+			$description = has_excerpt( $post )
+				? get_the_excerpt( $post )
+				: wp_trim_words( wp_strip_all_tags( $post->post_content ), 60 );
+			$description = trim( wp_strip_all_tags( (string) $description ) );
+
+			$rows[] = [
+				'id'          => (int) $post->ID,
+				'title'       => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'description' => html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'link'        => (string) get_permalink( $post ),
+				'image'       => $image ?: '',
+				'price'       => $normal,
+				'sale_price'  => $special,
+			];
+		}
+
+		wp_reset_postdata();
+		return $rows;
+	}
+
 	private static function format_post( \WP_Post $post, array $opts ): ?array {
 		$lat = get_post_meta( $post->ID, $opts['lat_field'], true );
 		$lng = get_post_meta( $post->ID, $opts['lng_field'], true );

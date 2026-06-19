@@ -27,6 +27,8 @@ class Settings {
 			'valid_from_field'    => 'valid_from',
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
+			'feed_currency'       => 'ZAR',
+			'feed_brand'          => '',
 			'primary_color'       => '#8AD000',
 			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
@@ -132,7 +134,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_brand', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -162,6 +164,11 @@ class Settings {
 					$out['featured_post_ids'][] = $id;
 				}
 			}
+		}
+
+		if ( isset( $input['feed_currency'] ) ) {
+			$code = strtoupper( trim( (string) $input['feed_currency'] ) );
+			$out['feed_currency'] = preg_match( '/^[A-Z]{3}$/', $code ) ? $code : 'ZAR';
 		}
 
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
@@ -266,6 +273,7 @@ class Settings {
 				<a href="#pricing"  class="nav-tab"                 data-tab="pricing"><?php esc_html_e( 'Pricing', 'bushbreaks-maps' ); ?></a>
 				<a href="#filters"  class="nav-tab"                 data-tab="filters"><?php esc_html_e( 'Filters', 'bushbreaks-maps' ); ?></a>
 				<a href="#map"      class="nav-tab"                 data-tab="map"><?php esc_html_e( 'Map &amp; Theme', 'bushbreaks-maps' ); ?></a>
+				<a href="#feed"     class="nav-tab"                 data-tab="feed"><?php esc_html_e( 'Facebook feed', 'bushbreaks-maps' ); ?></a>
 				<a href="#tools"    class="nav-tab"                 data-tab="tools"><?php esc_html_e( 'Tools', 'bushbreaks-maps' ); ?></a>
 			</h2>
 
@@ -507,6 +515,41 @@ class Settings {
 							<td><input id="bbm_tile_attr" name="<?php echo $option_attr; ?>[tile_attr]" type="text" value="<?php echo esc_attr( $opts['tile_attr'] ); ?>" class="large-text"></td>
 						</tr>
 					</table>
+				</div>
+
+				<div class="bbm-tab-content" data-tab="feed">
+					<h2><?php esc_html_e( 'Facebook / Meta product feed', 'bushbreaks-maps' ); ?></h2>
+					<p><?php esc_html_e( 'A product catalog feed built from your accommodation listings. The same XML works for Meta Commerce Manager, Google Merchant Center and Pinterest catalogues.', 'bushbreaks-maps' ); ?></p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><?php esc_html_e( 'Feed URL', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url() ); ?>">
+								<p class="description">
+									<?php esc_html_e( 'In Commerce Manager → Catalog → Data sources, add a "Scheduled feed" and paste this URL. Facebook re-fetches it on its own cadence.', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url() ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+								</p>
+								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
+									<p class="description"><em><?php esc_html_e( 'Tip: enable pretty permalinks (Settings → Permalinks) for a cleaner /bushbreaks-feed/facebook.xml URL.', 'bushbreaks-maps' ); ?></em></p>
+								<?php endif; ?>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_currency"><?php esc_html_e( 'Feed currency (ISO code)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_currency" name="<?php echo $option_attr; ?>[feed_currency]" type="text" maxlength="3" value="<?php echo esc_attr( $opts['feed_currency'] ); ?>" class="small-text" style="text-transform:uppercase;">
+								<p class="description"><?php esc_html_e( 'Three-letter ISO 4217 code Facebook requires for prices (e.g. ZAR, USD, EUR). Your on-site "R" symbol is display-only.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_brand"><?php esc_html_e( 'Brand', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_brand" name="<?php echo $option_attr; ?>[feed_brand]" type="text" value="<?php echo esc_attr( $opts['feed_brand'] ); ?>" class="regular-text" placeholder="<?php echo esc_attr( (string) get_bloginfo( 'name' ) ); ?>">
+								<p class="description"><?php esc_html_e( 'Brand applied to every item. Leave empty to use the site name.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+					</table>
+					<p class="description"><?php esc_html_e( 'Listings without both an image and a price are skipped, since Facebook rejects products missing either.', 'bushbreaks-maps' ); ?></p>
 				</div>
 
 				<p class="submit bbm-submit-row">
