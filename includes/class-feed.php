@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    Meta travel XML: destination_id, name, address, lat/long, price, image…
  *  - Products feed     /bushbreaks-feed/products.xml      (?bbm_feed=products)
  *    RSS 2.0 + Google product namespace, enriched with product_type
- *    (Holiday Destinations) and custom_label_0-3 (province, reserve,
- *    categories, features).
+ *    (Holiday Destinations) and custom_label_0-4 (province, reserve,
+ *    categories, features, break type).
  *
  * Each lodge is one entry in every feed. Paste a URL into Commerce Manager →
  * the matching catalog type → Data sources → "Scheduled feed".
@@ -276,6 +276,9 @@ class Feed {
 			}
 			if ( ! empty( $row['features'] ) ) {
 				printf( "<g:custom_label_3>%s</g:custom_label_3>\n", $this->cdata( (string) $row['features'] ) );
+			}
+			if ( ! empty( $row['break_type'] ) ) {
+				printf( "<g:custom_label_4>%s</g:custom_label_4>\n", $this->cdata( (string) $row['break_type'] ) );
 			}
 			echo "</item>\n";
 		}
