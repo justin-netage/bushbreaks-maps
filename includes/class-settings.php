@@ -33,6 +33,7 @@ class Settings {
 			'feed_description_field' => 'about_lodge',
 			'feed_product_type'   => 'Holiday Destinations',
 			'feed_features_field' => 'unique_selling_points',
+			'feed_break_type_field' => 'break_type',
 			'feed_country'        => 'South Africa',
 			'feed_city_field'        => '',
 			'feed_star_rating_field' => '',
@@ -141,7 +142,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_break_type_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -553,7 +554,7 @@ class Settings {
 							<td>
 								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'products' ) ); ?>">
 								<p class="description">
-									<?php esc_html_e( 'Standard product catalog (RSS). province, reserve, categories and features become custom_label_0/1/2/3.', 'bushbreaks-maps' ); ?>
+									<?php esc_html_e( 'Standard product catalog (RSS). province, reserve, categories, features and break type become custom_label_0/1/2/3/4.', 'bushbreaks-maps' ); ?>
 									<a href="<?php echo esc_url( Feed::feed_url( 'products' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
 								</p>
 								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
@@ -601,6 +602,13 @@ class Settings {
 							<td>
 								<input id="bbm_feed_features_field" name="<?php echo $option_attr; ?>[feed_features_field]" type="text" value="<?php echo esc_attr( $opts['feed_features_field'] ); ?>" class="regular-text">
 								<p class="description"><?php esc_html_e( 'Pods field (or taxonomy slug) for the lodge features / unique selling points. Output as custom_label_3 in the Products feed, comma-separated. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_break_type_field"><?php esc_html_e( 'Break type field (custom_label_4)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_break_type_field" name="<?php echo $option_attr; ?>[feed_break_type_field]" type="text" value="<?php echo esc_attr( $opts['feed_break_type_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods field (or taxonomy slug) for the type of break (e.g. "Bush Break", "Beach Break"). Output as custom_label_4 in the Products feed, comma-separated. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>

@@ -455,6 +455,7 @@ class Repository {
 		$dest_tax      = (string) ( $opts['destination_taxonomy'] ?? '' );
 		$cat_tax       = (string) ( $opts['category_taxonomy'] ?? '' );
 		$features_src  = (string) ( $opts['feed_features_field'] ?? '' );
+		$break_type_src = (string) ( $opts['feed_break_type_field'] ?? '' );
 		$desc_field    = (string) ( $opts['feed_description_field'] ?? '' );
 
 		$rows = [];
@@ -492,6 +493,7 @@ class Repository {
 			$geo        = self::destination_geo( $post->ID, $dest_tax );
 			$categories = self::term_names( $post->ID, $cat_tax );
 			$features   = self::feature_label( $post->ID, $features_src );
+			$break_type = self::feature_label( $post->ID, $break_type_src );
 
 			// Prefer the configured description field (e.g. "About Lodge");
 			// fall back to the excerpt, then trimmed content.
@@ -520,6 +522,7 @@ class Repository {
 				'reserve'      => $geo['reserve'],
 				'categories'   => $categories,
 				'features'     => $features,
+				'break_type'   => $break_type,
 				'star_rating'  => $star,
 			];
 		}
