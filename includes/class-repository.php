@@ -456,6 +456,7 @@ class Repository {
 		$cat_tax       = (string) ( $opts['category_taxonomy'] ?? '' );
 		$features_src  = (string) ( $opts['feed_features_field'] ?? '' );
 		$break_type_src = (string) ( $opts['feed_break_type_field'] ?? '' );
+		$gallery_field = (string) ( $opts['feed_gallery_field'] ?? '' );
 		$desc_field    = (string) ( $opts['feed_description_field'] ?? '' );
 
 		$rows = [];
@@ -505,12 +506,15 @@ class Repository {
 			}
 			$description = trim( wp_strip_all_tags( (string) $description ) );
 
+			$gallery = self::resolve_gallery( $post->ID, $gallery_field, 'full', $image ?: '' );
+
 			$rows[] = [
 				'id'           => (int) $post->ID,
 				'name'         => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'description'  => html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'url'          => (string) get_permalink( $post ),
 				'image'        => $image ?: '',
+				'gallery'      => $gallery,
 				'lat'          => $lat,
 				'lng'          => $lng,
 				'price'        => $normal,
@@ -849,6 +853,56 @@ class Repository {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Resolve a Pods gallery/multi-image field to a list of image URLs.
+	 * Pods stores repeatable file fields either as multiple meta rows or as a
+	 * single (serialized) array; entries can be attachment IDs, attachment
+	 * data arrays, or plain URL strings. The main image URL is excluded and
+	 * the list is capped so the feed stays within Meta's limits.
+	 */
+	private static function resolve_gallery( int $post_id, string $field, string $size, string $exclude_url = '', int $limit = 10 ): array {
+		if ( $field === '' ) {
+			return [];
+		}
+
+		$rows = get_post_meta( $post_id, $field );
+		if ( empty( $rows ) ) {
+			return [];
+		}
+		// Single meta row holding the whole list -> use the inner array.
+		if ( count( $rows ) === 1 && is_array( $rows[0] ) ) {
+			$rows = $rows[0];
+		}
+
+		$urls = [];
+		foreach ( $rows as $entry ) {
+			$url = '';
+			if ( is_numeric( $entry ) || ( is_string( $entry ) && ctype_digit( $entry ) ) ) {
+				$url = (string) wp_get_attachment_image_url( (int) $entry, $size );
+			} elseif ( is_string( $entry ) && filter_var( $entry, FILTER_VALIDATE_URL ) ) {
+				$url = $entry;
+			} elseif ( is_array( $entry ) ) {
+				$id = $entry['ID'] ?? $entry['id'] ?? null;
+				if ( is_numeric( $id ) ) {
+					$url = (string) wp_get_attachment_image_url( (int) $id, $size );
+				}
+				if ( $url === '' && isset( $entry['guid'] ) && is_string( $entry['guid'] ) && filter_var( $entry['guid'], FILTER_VALIDATE_URL ) ) {
+					$url = $entry['guid'];
+				}
+			}
+
+			if ( $url === '' || $url === $exclude_url || in_array( $url, $urls, true ) ) {
+				continue;
+			}
+			$urls[] = $url;
+			if ( count( $urls ) >= $limit ) {
+				break;
+			}
+		}
+
+		return $urls;
 	}
 
 	/**
