@@ -35,6 +35,7 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 = 0.9.20 =
 * New "Break type field" setting on the Facebook feed tab (default "break_type"). The configured Pods field or taxonomy is emitted as custom_label_4 in the Products feed, comma-separated, for ad-set targeting on the type of break (e.g. "Bush Break", "Beach Break"). Leave empty to omit.
 * Products feed now emits a unique item_group_id per item (equal to the item id) so Meta's automatic item grouping can't merge similarly-named lodges into variants of one product, and identifier_exists=no so Meta doesn't flag lodges for missing GTIN/MPN identifiers.
+* Feed custom labels are now plain text: HTML markup stored in the features field (e.g. <ul>/<li> lists) is stripped, and every custom_label value is capped at Meta's 100-character limit (cut on a word boundary).
 
 = 0.9.19 =
 * Each feed now includes an XML comment with the generating plugin version (e.g. <!-- Bushbreaks Maps 0.9.19 -->), so you can confirm at a glance whether a plugin update and cache purge have taken effect.
