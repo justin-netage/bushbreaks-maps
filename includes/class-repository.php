@@ -631,10 +631,12 @@ class Repository {
 			$parts = preg_split( '/[\r\n]+/', (string) $raw ) ?: [];
 		}
 
+		// Strip any HTML markup (e.g. <ul>/<li> lists stored in the Pods field)
+		// so the feed label is plain text; tag-only lines become empty and drop.
 		$parts = array_filter(
 			array_map(
 				static function ( $p ) {
-					return trim( html_entity_decode( (string) $p, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+					return trim( html_entity_decode( wp_strip_all_tags( (string) $p ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 				},
 				$parts
 			),

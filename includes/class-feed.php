@@ -246,12 +246,19 @@ class Feed {
 
 			echo "<item>\n";
 			printf( "<g:id>%d</g:id>\n", (int) $row['id'] );
+			// Unique group per item: declares every lodge a standalone product so
+			// Meta's automatic item grouping can't merge similarly-named lodges
+			// into variants of one product.
+			printf( "<g:item_group_id>%d</g:item_group_id>\n", (int) $row['id'] );
 			printf( "<g:title>%s</g:title>\n", $this->cdata( $row['name'] ) );
 			printf( "<g:description>%s</g:description>\n", $this->cdata( $description ) );
 			printf( "<g:link>%s</g:link>\n", esc_url( $row['url'] ) );
 			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
 			echo "<g:availability>in stock</g:availability>\n";
 			echo "<g:condition>new</g:condition>\n";
+			// Lodges have no GTIN/MPN barcodes; declare that so Meta doesn't
+			// flag the items for missing identifiers.
+			echo "<g:identifier_exists>no</g:identifier_exists>\n";
 			printf( "<g:price>%s</g:price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
 			if ( $sale_out !== null ) {
 				printf( "<g:sale_price>%s</g:sale_price>\n", esc_html( $this->money( (float) $sale_out, $currency ) ) );
@@ -266,19 +273,19 @@ class Feed {
 			// Province, reserve, categories and features as custom labels for
 			// ad-set filters.
 			if ( $row['province'] !== '' ) {
-				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $row['province'] ) );
+				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $this->clamp_label( $row['province'] ) ) );
 			}
 			if ( $row['reserve'] !== '' ) {
-				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $row['reserve'] ) );
+				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $this->clamp_label( $row['reserve'] ) ) );
 			}
 			if ( ! empty( $row['categories'] ) ) {
-				printf( "<g:custom_label_2>%s</g:custom_label_2>\n", $this->cdata( implode( ', ', (array) $row['categories'] ) ) );
+				printf( "<g:custom_label_2>%s</g:custom_label_2>\n", $this->cdata( $this->clamp_label( implode( ', ', (array) $row['categories'] ) ) ) );
 			}
 			if ( ! empty( $row['features'] ) ) {
-				printf( "<g:custom_label_3>%s</g:custom_label_3>\n", $this->cdata( (string) $row['features'] ) );
+				printf( "<g:custom_label_3>%s</g:custom_label_3>\n", $this->cdata( $this->clamp_label( (string) $row['features'] ) ) );
 			}
 			if ( ! empty( $row['break_type'] ) ) {
-				printf( "<g:custom_label_4>%s</g:custom_label_4>\n", $this->cdata( (string) $row['break_type'] ) );
+				printf( "<g:custom_label_4>%s</g:custom_label_4>\n", $this->cdata( $this->clamp_label( (string) $row['break_type'] ) ) );
 			}
 			echo "</item>\n";
 		}
@@ -373,6 +380,22 @@ class Feed {
 		return ( floor( $rating ) === $rating )
 			? (string) (int) $rating
 			: number_format( $rating, 1, '.', '' );
+	}
+
+	/**
+	 * Meta caps custom_label_0-4 at 100 characters; longer values trigger
+	 * feed warnings. Cut at the limit, on a word boundary when possible.
+	 */
+	private function clamp_label( string $value ): string {
+		if ( mb_strlen( $value, 'UTF-8' ) <= 100 ) {
+			return $value;
+		}
+		$cut = mb_substr( $value, 0, 100, 'UTF-8' );
+		$pos = mb_strrpos( $cut, ' ', 0, 'UTF-8' );
+		if ( $pos !== false && $pos > 60 ) {
+			$cut = mb_substr( $cut, 0, $pos, 'UTF-8' );
+		}
+		return rtrim( $cut, " ,;" );
 	}
 
 	private function cdata( string $value ): string {
