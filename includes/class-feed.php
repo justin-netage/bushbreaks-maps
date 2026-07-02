@@ -246,12 +246,19 @@ class Feed {
 
 			echo "<item>\n";
 			printf( "<g:id>%d</g:id>\n", (int) $row['id'] );
+			// Unique group per item: declares every lodge a standalone product so
+			// Meta's automatic item grouping can't merge similarly-named lodges
+			// into variants of one product.
+			printf( "<g:item_group_id>%d</g:item_group_id>\n", (int) $row['id'] );
 			printf( "<g:title>%s</g:title>\n", $this->cdata( $row['name'] ) );
 			printf( "<g:description>%s</g:description>\n", $this->cdata( $description ) );
 			printf( "<g:link>%s</g:link>\n", esc_url( $row['url'] ) );
 			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
 			echo "<g:availability>in stock</g:availability>\n";
 			echo "<g:condition>new</g:condition>\n";
+			// Lodges have no GTIN/MPN barcodes; declare that so Meta doesn't
+			// flag the items for missing identifiers.
+			echo "<g:identifier_exists>no</g:identifier_exists>\n";
 			printf( "<g:price>%s</g:price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
 			if ( $sale_out !== null ) {
 				printf( "<g:sale_price>%s</g:sale_price>\n", esc_html( $this->money( (float) $sale_out, $currency ) ) );
