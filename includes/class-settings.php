@@ -37,6 +37,7 @@ class Settings {
 			'feed_country'        => 'South Africa',
 			'feed_city_field'        => '',
 			'feed_star_rating_field' => '',
+			'feed_gallery_field'     => 'gallery',
 			'primary_color'       => '#8AD000',
 			'thumbnail_size'      => 'large',
 			'map_center_lat' => -23.6980,
@@ -142,7 +143,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_break_type_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_break_type_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'feed_gallery_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -623,6 +624,13 @@ class Settings {
 							<td>
 								<input id="bbm_feed_city_field" name="<?php echo $option_attr; ?>[feed_city_field]" type="text" value="<?php echo esc_attr( $opts['feed_city_field'] ); ?>" class="regular-text">
 								<p class="description"><?php esc_html_e( 'Pods meta field holding the town/city for the address. Leave empty if you don\'t store one — latitude/longitude still pin the hotel.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_gallery_field"><?php esc_html_e( 'Gallery field (additional images)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_gallery_field" name="<?php echo $option_attr; ?>[feed_gallery_field]" type="text" value="<?php echo esc_attr( $opts['feed_gallery_field'] ); ?>" class="regular-text">
+								<p class="description"><?php esc_html_e( 'Pods gallery/multi-image field. Up to 10 images are emitted as additional_image_link in the Products feed (the main image is excluded). Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>

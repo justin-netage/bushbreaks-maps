@@ -254,6 +254,9 @@ class Feed {
 			printf( "<g:description>%s</g:description>\n", $this->cdata( $description ) );
 			printf( "<g:link>%s</g:link>\n", esc_url( $row['url'] ) );
 			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
+			foreach ( (array) ( $row['gallery'] ?? [] ) as $extra ) {
+				printf( "<g:additional_image_link>%s</g:additional_image_link>\n", esc_url( $extra ) );
+			}
 			echo "<g:availability>in stock</g:availability>\n";
 			echo "<g:condition>new</g:condition>\n";
 			// Lodges have no GTIN/MPN barcodes; declare that so Meta doesn't
