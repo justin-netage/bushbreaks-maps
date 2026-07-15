@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.23
+Stable tag: 0.9.24
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -32,8 +32,11 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 
 == Changelog ==
 
+= 0.9.24 =
+* Fixes a feed timeout introduced in 0.9.23: cropping the new feed image size no longer happens inline during the feed request (a request can touch hundreds of images). Feed image resolution now falls back to an existing size until an image has been cropped. New "Regenerate feed images" tool under Settings → Tools pre-crops the whole catalog in small batches via AJAX, mirroring the existing coordinate-backfill tool.
+
 = 0.9.23 =
-* Feed images (main + gallery) are now emitted at a single hard-cropped 1200x1200 size instead of the raw original, so lodges with differently-sized/shaped photos no longer get cropped inconsistently by Meta's catalog and dynamic-ad placements. Until an image is cropped it falls back to an existing size, so the feed never times out; use the new "Regenerate feed images" tool under Settings → Tools to pre-crop the whole catalog in small batches.
+* Feed images (main + gallery) are now emitted at a single hard-cropped 1200x1200 size instead of the raw original, so lodges with differently-sized/shaped photos no longer get cropped inconsistently by Meta's catalog and dynamic-ad placements.
 
 = 0.9.22 =
 * New "Gallery field (additional images)" setting on the Facebook feed tab (default "gallery"). Up to 10 images from the configured Pods gallery/multi-image field are emitted as additional_image_link per item in the Products feed, excluding the main image. Leave empty to omit.
