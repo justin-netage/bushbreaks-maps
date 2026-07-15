@@ -21,6 +21,7 @@ class Repository {
 
 	public static function register(): void {
 		add_action( 'init', [ __CLASS__, 'register_image_size' ] );
+		add_action( 'wp_ajax_bushbreaks_maps_regen_feed_images', [ __CLASS__, 'ajax_regen_feed_images' ] );
 	}
 
 	public static function register_image_size(): void {
@@ -820,30 +821,199 @@ class Repository {
 	}
 
 	/**
-	 * Resolve an attachment ID + registered size to a URL. For the feed's
-	 * hard-cropped size, images uploaded before that size existed won't
-	 * have it in their metadata yet — generate it once here and cache it
-	 * via the normal attachment metadata so later calls are instant.
+	 * Resolve an attachment ID + registered size to a URL. Cropping happens
+	 * ahead of time via warm_feed_image() (run from Settings → Tools, in
+	 * small batches) rather than here — a feed request can touch hundreds
+	 * of images, and cropping them inline was slow enough to time the
+	 * request out. Until an image is warmed, fall back to an existing size
+	 * so the feed keeps working.
 	 */
 	private static function attachment_image_url( int $attachment_id, string $size ): string {
 		if ( $size === self::FEED_IMAGE_SIZE ) {
 			$meta = wp_get_attachment_metadata( $attachment_id );
 			if ( empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
-				$file = get_attached_file( $attachment_id );
-				if ( $file && file_exists( $file ) ) {
-					if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
-						require_once ABSPATH . 'wp-admin/includes/image.php';
-					}
-					$new_meta = wp_generate_attachment_metadata( $attachment_id, $file );
-					if ( ! is_wp_error( $new_meta ) && ! empty( $new_meta ) ) {
-						wp_update_attachment_metadata( $attachment_id, $new_meta );
-					}
-				}
+				$url = wp_get_attachment_image_url( $attachment_id, 'large' );
+				return $url ?: (string) wp_get_attachment_image_url( $attachment_id, 'full' );
 			}
 		}
 
 		$url = wp_get_attachment_image_url( $attachment_id, $size );
 		return $url ?: '';
+	}
+
+	/**
+	 * Crop one attachment to the feed's hard-cropped size and cache it in
+	 * its metadata. A single-size resize, not a full wp_generate_attachment_metadata()
+	 * regen (which redoes every registered size) — cheap enough to run
+	 * across a whole catalog in an admin-triggered AJAX batch.
+	 * Returns true if the size exists afterward (already warmed counts).
+	 */
+	public static function warm_feed_image( int $attachment_id ): bool {
+		$meta = wp_get_attachment_metadata( $attachment_id );
+		if ( ! empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
+			return true;
+		}
+
+		$file = get_attached_file( $attachment_id );
+		if ( ! $file || ! file_exists( $file ) ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'wp_get_image_editor' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+		$editor = wp_get_image_editor( $file );
+		if ( is_wp_error( $editor ) ) {
+			return false;
+		}
+		$editor->resize( 1200, 1200, true );
+		$saved = $editor->save();
+		if ( is_wp_error( $saved ) ) {
+			return false;
+		}
+
+		if ( ! is_array( $meta ) ) {
+			$meta = [];
+		}
+		$meta['sizes'][ self::FEED_IMAGE_SIZE ] = [
+			'file'      => $saved['file'],
+			'width'     => $saved['width'],
+			'height'    => $saved['height'],
+			'mime-type' => $saved['mime-type'],
+		];
+		wp_update_attachment_metadata( $attachment_id, $meta );
+		return true;
+	}
+
+	/**
+	 * Pull an attachment ID out of one Pods field entry (numeric ID,
+	 * numeric-string ID, or an attachment data array). Plain URL strings
+	 * yield null — there's no local file to crop.
+	 */
+	private static function extract_attachment_id( $entry ): ?int {
+		if ( is_numeric( $entry ) || ( is_string( $entry ) && ctype_digit( $entry ) ) ) {
+			return (int) $entry;
+		}
+		if ( is_array( $entry ) ) {
+			$id = $entry['ID'] ?? $entry['id'] ?? null;
+			if ( is_numeric( $id ) ) {
+				return (int) $id;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Attachment ID referenced by a single-image Pods field, mirroring
+	 * resolve_image()'s value shapes (attachment ID, single attachment
+	 * array, or — misconfigured as multi — the first of an array of
+	 * attachment arrays).
+	 */
+	private static function single_field_attachment_id( int $post_id, string $field ): ?int {
+		if ( $field === '' ) {
+			return null;
+		}
+		$val = get_post_meta( $post_id, $field, true );
+		if ( empty( $val ) ) {
+			return null;
+		}
+		if ( is_array( $val ) ) {
+			$first = reset( $val );
+			if ( is_array( $first ) && ( isset( $first['ID'] ) || isset( $first['id'] ) || isset( $first['guid'] ) ) ) {
+				$val = $first;
+			}
+		}
+		return self::extract_attachment_id( $val );
+	}
+
+	/**
+	 * Attachment IDs referenced by a Pods gallery/multi-image field,
+	 * mirroring resolve_gallery()'s value shapes (multiple meta rows, or
+	 * a single meta row holding the whole list).
+	 */
+	private static function gallery_field_attachment_ids( int $post_id, string $field ): array {
+		if ( $field === '' ) {
+			return [];
+		}
+
+		$rows = get_post_meta( $post_id, $field );
+		if ( empty( $rows ) ) {
+			return [];
+		}
+		if ( count( $rows ) === 1 && is_array( $rows[0] ) ) {
+			$rows = $rows[0];
+		}
+
+		$ids = [];
+		foreach ( $rows as $entry ) {
+			$id = self::extract_attachment_id( $entry );
+			if ( $id !== null ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
+
+	/**
+	 * AJAX: pre-crop feed images for a batch of listings (main image,
+	 * gallery, and featured-image fallback), so the feed itself never has
+	 * to crop on demand. Mirrors Coords_Sync::ajax_backfill's batching.
+	 */
+	public static function ajax_regen_feed_images(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( [ 'message' => 'forbidden' ], 403 );
+		}
+		check_ajax_referer( 'bushbreaks_maps_regen_feed_images', 'nonce' );
+
+		$opts   = Settings::all();
+		$offset = isset( $_POST['offset'] ) ? max( 0, (int) $_POST['offset'] ) : 0;
+		$batch  = 5;
+
+		$query = new \WP_Query(
+			[
+				'post_type'      => $opts['post_type'],
+				'post_status'    => 'publish',
+				'posts_per_page' => $batch,
+				'offset'         => $offset,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+			]
+		);
+
+		$total     = (int) $query->found_posts;
+		$processed = 0;
+		$warmed    = 0;
+
+		foreach ( $query->posts as $post_id ) {
+			$ids       = self::gallery_field_attachment_ids( (int) $post_id, (string) ( $opts['feed_gallery_field'] ?? '' ) );
+			$single_id = self::single_field_attachment_id( (int) $post_id, (string) ( $opts['image_field'] ?? '' ) );
+			if ( $single_id !== null ) {
+				$ids[] = $single_id;
+			}
+			$thumb_id = get_post_thumbnail_id( $post_id );
+			if ( $thumb_id ) {
+				$ids[] = (int) $thumb_id;
+			}
+			foreach ( array_unique( $ids ) as $attachment_id ) {
+				if ( self::warm_feed_image( $attachment_id ) ) {
+					$warmed++;
+				}
+			}
+			$processed++;
+		}
+
+		wp_reset_postdata();
+
+		$next = $offset + $processed;
+		wp_send_json_success(
+			[
+				'total'  => $total,
+				'next'   => $next,
+				'done'   => $processed === 0 || $next >= $total,
+				'warmed' => $warmed,
+			]
+		);
 	}
 
 	/**

@@ -352,4 +352,50 @@
 				btn.disabled = false;
 			});
 	}
+
+	var regenBtn = document.getElementById('bbm-regen-feed-images');
+	var regenStatusEl = document.getElementById('bbm-regen-feed-images-status');
+	if (!regenBtn || !regenStatusEl || !cfg) {
+		return;
+	}
+
+	regenBtn.addEventListener('click', function (e) {
+		e.preventDefault();
+		regenBtn.disabled = true;
+		regenStatusEl.textContent = cfg.i18n.starting;
+		runRegenBatch(0);
+	});
+
+	function runRegenBatch(offset) {
+		var fd = new FormData();
+		fd.append('action', 'bushbreaks_maps_regen_feed_images');
+		fd.append('nonce', cfg.regenFeedImagesNonce);
+		fd.append('offset', String(offset));
+
+		fetch(cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: fd,
+		})
+			.then(function (r) { return r.json(); })
+			.then(function (json) {
+				if (!json || !json.success) {
+					regenStatusEl.textContent = cfg.i18n.error;
+					regenBtn.disabled = false;
+					return;
+				}
+				var d = json.data;
+				if (d.done) {
+					regenStatusEl.textContent = format(cfg.i18n.done, d.next, d.total);
+					regenBtn.disabled = false;
+				} else {
+					regenStatusEl.textContent = format(cfg.i18n.progress, d.next, d.total);
+					runRegenBatch(d.next);
+				}
+			})
+			.catch(function () {
+				regenStatusEl.textContent = cfg.i18n.networkError;
+				regenBtn.disabled = false;
+			});
+	}
 })();

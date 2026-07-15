@@ -33,7 +33,7 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 == Changelog ==
 
 = 0.9.23 =
-* Feed images (main + gallery) are now emitted at a single hard-cropped 1200x1200 size instead of the raw original, so lodges with differently-sized/shaped photos no longer get cropped inconsistently by Meta's catalog and dynamic-ad placements. The cropped size is generated on first use per image and cached, so only the first feed request after upgrading is slower.
+* Feed images (main + gallery) are now emitted at a single hard-cropped 1200x1200 size instead of the raw original, so lodges with differently-sized/shaped photos no longer get cropped inconsistently by Meta's catalog and dynamic-ad placements. Until an image is cropped it falls back to an existing size, so the feed never times out; use the new "Regenerate feed images" tool under Settings → Tools to pre-crop the whole catalog in small batches.
 
 = 0.9.22 =
 * New "Gallery field (additional images)" setting on the Facebook feed tab (default "gallery"). Up to 10 images from the configured Pods gallery/multi-image field are emitted as additional_image_link per item in the Products feed, excluding the main image. Leave empty to omit.
