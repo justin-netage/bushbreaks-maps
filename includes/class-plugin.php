@@ -18,6 +18,7 @@ final class Plugin {
 
 	public function init(): void {
 		$this->maybe_migrate_options();
+		Repository::register();
 		( new Settings() )->register();
 		( new Shortcode() )->register();
 		( new Feed() )->register();

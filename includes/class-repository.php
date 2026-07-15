@@ -12,6 +12,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Repository {
 
+	// Meta's catalog/dynamic-ad placements crop every image to a single
+	// aspect ratio; source photos of mismatched ratios each get cropped
+	// differently, which is what looks "disproportionate" in Commerce
+	// Manager and the ad carousel. Emitting one consistent, pre-cropped
+	// square size in the feed removes that guesswork.
+	private const FEED_IMAGE_SIZE = 'bushbreaks_feed';
+
+	public static function register(): void {
+		add_action( 'init', [ __CLASS__, 'register_image_size' ] );
+	}
+
+	public static function register_image_size(): void {
+		add_image_size( self::FEED_IMAGE_SIZE, 1200, 1200, true );
+	}
+
 	public static function query( array $args = [] ): array {
 		$opts = Settings::all();
 
@@ -461,9 +476,10 @@ class Repository {
 
 		$rows = [];
 		foreach ( $query->posts as $post ) {
-			$image = self::resolve_image( $post->ID, (string) ( $opts['image_field'] ?? '' ), 'full' );
+			$image = self::resolve_image( $post->ID, (string) ( $opts['image_field'] ?? '' ), self::FEED_IMAGE_SIZE );
 			if ( $image === '' ) {
-				$image = (string) get_the_post_thumbnail_url( $post->ID, 'full' );
+				$thumb_id = get_post_thumbnail_id( $post->ID );
+				$image    = $thumb_id ? self::attachment_image_url( (int) $thumb_id, self::FEED_IMAGE_SIZE ) : '';
 			}
 
 			$lat = $lat_field !== '' ? get_post_meta( $post->ID, $lat_field, true ) : '';
@@ -506,7 +522,7 @@ class Repository {
 			}
 			$description = trim( wp_strip_all_tags( (string) $description ) );
 
-			$gallery = self::resolve_gallery( $post->ID, $gallery_field, 'full', $image ?: '' );
+			$gallery = self::resolve_gallery( $post->ID, $gallery_field, self::FEED_IMAGE_SIZE, $image ?: '' );
 
 			$rows[] = [
 				'id'           => (int) $post->ID,
@@ -804,6 +820,33 @@ class Repository {
 	}
 
 	/**
+	 * Resolve an attachment ID + registered size to a URL. For the feed's
+	 * hard-cropped size, images uploaded before that size existed won't
+	 * have it in their metadata yet — generate it once here and cache it
+	 * via the normal attachment metadata so later calls are instant.
+	 */
+	private static function attachment_image_url( int $attachment_id, string $size ): string {
+		if ( $size === self::FEED_IMAGE_SIZE ) {
+			$meta = wp_get_attachment_metadata( $attachment_id );
+			if ( empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
+				$file = get_attached_file( $attachment_id );
+				if ( $file && file_exists( $file ) ) {
+					if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+						require_once ABSPATH . 'wp-admin/includes/image.php';
+					}
+					$new_meta = wp_generate_attachment_metadata( $attachment_id, $file );
+					if ( ! is_wp_error( $new_meta ) && ! empty( $new_meta ) ) {
+						wp_update_attachment_metadata( $attachment_id, $new_meta );
+					}
+				}
+			}
+		}
+
+		$url = wp_get_attachment_image_url( $attachment_id, $size );
+		return $url ?: '';
+	}
+
+	/**
 	 * Resolve a Pods image/file field to a URL. Handles attachment ID,
 	 * array of attachment data (single or multiple), and plain URL strings.
 	 */
@@ -819,8 +862,7 @@ class Repository {
 
 		if ( is_string( $val ) ) {
 			if ( ctype_digit( $val ) ) {
-				$url = wp_get_attachment_image_url( (int) $val, $size );
-				return $url ?: '';
+				return self::attachment_image_url( (int) $val, $size );
 			}
 			if ( filter_var( $val, FILTER_VALIDATE_URL ) ) {
 				return $val;
@@ -829,8 +871,7 @@ class Repository {
 		}
 
 		if ( is_numeric( $val ) ) {
-			$url = wp_get_attachment_image_url( (int) $val, $size );
-			return $url ?: '';
+			return self::attachment_image_url( (int) $val, $size );
 		}
 
 		if ( is_array( $val ) ) {
@@ -842,7 +883,7 @@ class Repository {
 
 			$id = $val['ID'] ?? $val['id'] ?? null;
 			if ( is_numeric( $id ) ) {
-				$url = wp_get_attachment_image_url( (int) $id, $size );
+				$url = self::attachment_image_url( (int) $id, $size );
 				if ( $url ) {
 					return $url;
 				}
@@ -880,13 +921,13 @@ class Repository {
 		foreach ( $rows as $entry ) {
 			$url = '';
 			if ( is_numeric( $entry ) || ( is_string( $entry ) && ctype_digit( $entry ) ) ) {
-				$url = (string) wp_get_attachment_image_url( (int) $entry, $size );
+				$url = self::attachment_image_url( (int) $entry, $size );
 			} elseif ( is_string( $entry ) && filter_var( $entry, FILTER_VALIDATE_URL ) ) {
 				$url = $entry;
 			} elseif ( is_array( $entry ) ) {
 				$id = $entry['ID'] ?? $entry['id'] ?? null;
 				if ( is_numeric( $id ) ) {
-					$url = (string) wp_get_attachment_image_url( (int) $id, $size );
+					$url = self::attachment_image_url( (int) $id, $size );
 				}
 				if ( $url === '' && isset( $entry['guid'] ) && is_string( $entry['guid'] ) && filter_var( $entry['guid'], FILTER_VALIDATE_URL ) ) {
 					$url = $entry['guid'];
