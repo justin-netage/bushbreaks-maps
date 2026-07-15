@@ -106,6 +106,7 @@ class Settings {
 				[
 					'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
 					'nonce'             => wp_create_nonce( 'bushbreaks_maps_backfill' ),
+					'regenFeedImagesNonce' => wp_create_nonce( 'bushbreaks_maps_regen_feed_images' ),
 					'reorderNonce'      => wp_create_nonce( 'bushbreaks_maps_reorder_categories' ),
 					'reorderDestNonce'  => wp_create_nonce( 'bushbreaks_maps_reorder_destinations' ),
 					'lodgeSearchNonce'  => wp_create_nonce( 'bushbreaks_maps_lodge_search' ),
@@ -655,6 +656,13 @@ class Settings {
 				<p>
 					<button type="button" class="button button-primary" id="bbm-backfill"><?php esc_html_e( 'Run backfill', 'bushbreaks-maps' ); ?></button>
 					<span id="bbm-backfill-status" style="margin-left:10px;"></span>
+				</p>
+
+				<h2><?php esc_html_e( 'Regenerate feed images', 'bushbreaks-maps' ); ?></h2>
+				<p><?php esc_html_e( 'Pre-crop every listing image to the size Meta receives (1200x1200) in small batches, so the feed itself never has to crop images on the fly. Run this once after upgrading, and again whenever you bulk-upload new photos.', 'bushbreaks-maps' ); ?></p>
+				<p>
+					<button type="button" class="button button-primary" id="bbm-regen-feed-images"><?php esc_html_e( 'Run regeneration', 'bushbreaks-maps' ); ?></button>
+					<span id="bbm-regen-feed-images-status" style="margin-left:10px;"></span>
 				</p>
 
 				<?php
