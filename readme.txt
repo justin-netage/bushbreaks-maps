@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.22
+Stable tag: 0.9.23
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.23 =
+* Feed images (main + gallery) are now emitted at a single hard-cropped 1200x1200 size instead of the raw original, so lodges with differently-sized/shaped photos no longer get cropped inconsistently by Meta's catalog and dynamic-ad placements. The cropped size is generated on first use per image and cached, so only the first feed request after upgrading is slower.
 
 = 0.9.22 =
 * New "Gallery field (additional images)" setting on the Facebook feed tab (default "gallery"). Up to 10 images from the configured Pods gallery/multi-image field are emitted as additional_image_link per item in the Products feed, excluding the main image. Leave empty to omit.
