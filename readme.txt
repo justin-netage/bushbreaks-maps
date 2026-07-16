@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.26
+Stable tag: 0.9.27
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.27 =
+* Fixes 0.9.26's raw-URL-to-attachment resolution still missing real attachments on sites where the stored URL's scheme/domain (e.g. www vs bare, http vs https) no longer matches the site's currently configured uploads URL — WordPress's own attachment_url_to_postid() requires an exact prefix match and silently fails otherwise. Now matches on the "wp-content/uploads/..." relative path directly, independent of scheme/domain.
 
 = 0.9.26 =
 * Fixes feed cropping being silently skipped for listings whose Pods image/gallery field stores a raw URL (e.g. a specific already-generated size) instead of an attachment reference — the requested feed size was never even consulted for those. The URL is now resolved back to its attachment where possible, so the 1200x1200 crop applies to it too; falls back to the stored URL unchanged only when it isn't a local attachment.
