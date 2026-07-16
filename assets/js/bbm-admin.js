@@ -359,9 +359,14 @@
 		return;
 	}
 
+	var regenFound = 0;
+	var regenWarmed = 0;
+
 	regenBtn.addEventListener('click', function (e) {
 		e.preventDefault();
 		regenBtn.disabled = true;
+		regenFound = 0;
+		regenWarmed = 0;
 		regenStatusEl.textContent = cfg.i18n.starting;
 		runRegenBatch(0);
 	});
@@ -385,11 +390,17 @@
 					return;
 				}
 				var d = json.data;
+				regenFound += (d.found || 0);
+				regenWarmed += (d.warmed || 0);
+				// Not a translated string — this is a diagnostic count
+				// (images found vs. actually cropped) so it's clear at a
+				// glance whether the regen tool is finding anything at all.
+				var suffix = ' (' + regenWarmed + '/' + regenFound + ' images cropped so far)';
 				if (d.done) {
-					regenStatusEl.textContent = format(cfg.i18n.done, d.next, d.total);
+					regenStatusEl.textContent = format(cfg.i18n.done, d.next, d.total) + suffix;
 					regenBtn.disabled = false;
 				} else {
-					regenStatusEl.textContent = format(cfg.i18n.progress, d.next, d.total);
+					regenStatusEl.textContent = format(cfg.i18n.progress, d.next, d.total) + suffix;
 					runRegenBatch(d.next);
 				}
 			})
