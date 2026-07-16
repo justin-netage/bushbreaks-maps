@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.24
+Stable tag: 0.9.25
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,10 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.25 =
+* Feed images smaller than 1200px get a mild GD-based sharpen after upscaling (no Imagick required), to offset the softness from stretching a small source up to the feed's crop size.
+* New "Images below Meta's recommended size (500x500)" list under Settings → Tools, so you can see exactly which lodges need a better source photo — upscaling can't recover detail that isn't there.
 
 = 0.9.24 =
 * Fixes a feed timeout introduced in 0.9.23: cropping the new feed image size no longer happens inline during the feed request (a request can touch hundreds of images). Feed image resolution now falls back to an existing size until an image has been cropped. New "Regenerate feed images" tool under Settings → Tools pre-crops the whole catalog in small batches via AJAX, mirroring the existing coordinate-backfill tool.
