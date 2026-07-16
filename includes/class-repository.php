@@ -927,9 +927,10 @@ class Repository {
 	 * Returns true if the size exists afterward (already warmed counts).
 	 */
 	public static function warm_feed_image( int $attachment_id ): bool {
-		$meta = wp_get_attachment_metadata( $attachment_id );
-		if ( ! empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
-			self::feed_debug_log( "warm_feed_image($attachment_id): already warmed, skipping" );
+		$meta     = wp_get_attachment_metadata( $attachment_id );
+		$existing = is_array( $meta ) ? ( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ?? null ) : null;
+		if ( is_array( $existing ) && (int) ( $existing['width'] ?? 0 ) === 1200 && (int) ( $existing['height'] ?? 0 ) === 1200 ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): already warmed at 1200x1200, skipping" );
 			return true;
 		}
 
@@ -939,10 +940,6 @@ class Repository {
 			return false;
 		}
 
-		$orig_width  = (int) ( is_array( $meta ) ? ( $meta['width'] ?? 0 ) : 0 );
-		$orig_height = (int) ( is_array( $meta ) ? ( $meta['height'] ?? 0 ) : 0 );
-		$needs_upscale = $orig_width > 0 && $orig_height > 0 && min( $orig_width, $orig_height ) < 1200;
-
 		if ( ! function_exists( 'wp_get_image_editor' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 		}
@@ -951,7 +948,34 @@ class Repository {
 			self::feed_debug_log( "warm_feed_image($attachment_id): wp_get_image_editor() error: " . $editor->get_error_message() );
 			return false;
 		}
-		$editor->resize( 1200, 1200, true );
+
+		$editor_size = $editor->get_size();
+		$orig_width  = (int) ( $editor_size['width'] ?? 0 );
+		$orig_height = (int) ( $editor_size['height'] ?? 0 );
+		if ( $orig_width <= 0 || $orig_height <= 0 ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): editor reported an invalid size" );
+			return false;
+		}
+		$needs_upscale = min( $orig_width, $orig_height ) < 1200;
+
+		// WP_Image_Editor::resize( $w, $h, true ) refuses to upscale past
+		// the original's pixel dimensions even with hard crop enabled —
+		// image_resize_dimensions() clamps to min($dest, $orig) — so for
+		// any source smaller than 1200px on its short side it silently
+		// re-saves the original UNCHANGED instead of cropping, no error.
+		// crop() has no such limit: take a centered square from the
+		// original sized to its shorter side, then resample it up to
+		// exactly 1200x1200 regardless of how small the source is.
+		$crop_size = min( $orig_width, $orig_height );
+		$crop_x    = (int) floor( ( $orig_width - $crop_size ) / 2 );
+		$crop_y    = (int) floor( ( $orig_height - $crop_size ) / 2 );
+
+		$cropped = $editor->crop( $crop_x, $crop_y, $crop_size, $crop_size, 1200, 1200 );
+		if ( is_wp_error( $cropped ) ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): crop() error: " . $cropped->get_error_message() );
+			return false;
+		}
+
 		$saved = $editor->save();
 		if ( is_wp_error( $saved ) ) {
 			self::feed_debug_log( "warm_feed_image($attachment_id): editor save() error: " . $saved->get_error_message() );
@@ -975,7 +999,7 @@ class Repository {
 			'mime-type' => $saved['mime-type'],
 		];
 		wp_update_attachment_metadata( $attachment_id, $meta );
-		self::feed_debug_log( "warm_feed_image($attachment_id): cropped to {$saved['width']}x{$saved['height']}, file={$saved['file']}" );
+		self::feed_debug_log( "warm_feed_image($attachment_id): cropped {$orig_width}x{$orig_height} -> {$saved['width']}x{$saved['height']}, file={$saved['file']}" );
 		return true;
 	}
 
