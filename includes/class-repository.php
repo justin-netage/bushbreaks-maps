@@ -19,6 +19,11 @@ class Repository {
 	// square size in the feed removes that guesswork.
 	private const FEED_IMAGE_SIZE = 'bushbreaks_feed';
 
+	// Meta's own recommended minimum for catalog images. Anything smaller
+	// gets upscaled to fill FEED_IMAGE_SIZE regardless — flagged separately
+	// so an admin can swap in a better source photo instead.
+	private const MIN_FEED_DIM = 500;
+
 	public static function register(): void {
 		add_action( 'init', [ __CLASS__, 'register_image_size' ] );
 		add_action( 'wp_ajax_bushbreaks_maps_regen_feed_images', [ __CLASS__, 'ajax_regen_feed_images' ] );
@@ -436,6 +441,63 @@ class Repository {
 
 		wp_reset_postdata();
 		return $missing;
+	}
+
+	/**
+	 * List feed images (main, gallery, featured-image fallback) whose
+	 * original is smaller than Meta's recommended minimum on either
+	 * dimension. Upscaling can't recover missing detail — these are the
+	 * ones that need an actual better source photo.
+	 */
+	public static function find_low_res_feed_images(): array {
+		$opts = Settings::all();
+
+		$query = new \WP_Query(
+			[
+				'post_type'      => $opts['post_type'],
+				'post_status'    => [ 'publish', 'draft', 'pending', 'private', 'future' ],
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			]
+		);
+
+		$flagged = [];
+		foreach ( $query->posts as $pid ) {
+			$post_id   = (int) $pid;
+			$ids       = self::gallery_field_attachment_ids( $post_id, (string) ( $opts['feed_gallery_field'] ?? '' ) );
+			$single_id = self::single_field_attachment_id( $post_id, (string) ( $opts['image_field'] ?? '' ) );
+			if ( $single_id !== null ) {
+				$ids[] = $single_id;
+			}
+			$thumb_id = get_post_thumbnail_id( $post_id );
+			if ( $thumb_id ) {
+				$ids[] = (int) $thumb_id;
+			}
+
+			foreach ( array_unique( $ids ) as $attachment_id ) {
+				$attachment_meta = wp_get_attachment_metadata( $attachment_id );
+				$width           = (int) ( $attachment_meta['width'] ?? 0 );
+				$height          = (int) ( $attachment_meta['height'] ?? 0 );
+				if ( $width === 0 || $height === 0 ) {
+					continue;
+				}
+				if ( $width < self::MIN_FEED_DIM || $height < self::MIN_FEED_DIM ) {
+					$flagged[] = [
+						'post_id'   => $post_id,
+						'title'     => get_the_title( $post_id ),
+						'edit_link' => get_edit_post_link( $post_id, 'raw' ),
+						'width'     => $width,
+						'height'    => $height,
+					];
+				}
+			}
+		}
+
+		wp_reset_postdata();
+		return $flagged;
 	}
 
 	/**
@@ -859,6 +921,10 @@ class Repository {
 			return false;
 		}
 
+		$orig_width  = (int) ( is_array( $meta ) ? ( $meta['width'] ?? 0 ) : 0 );
+		$orig_height = (int) ( is_array( $meta ) ? ( $meta['height'] ?? 0 ) : 0 );
+		$needs_upscale = $orig_width > 0 && $orig_height > 0 && min( $orig_width, $orig_height ) < 1200;
+
 		if ( ! function_exists( 'wp_get_image_editor' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 		}
@@ -872,6 +938,13 @@ class Repository {
 			return false;
 		}
 
+		// Upscaling softens the image; a mild sharpen offsets that. Only
+		// worth doing when we actually scaled up — sharpening an
+		// already-correctly-sized photo just looks artificial.
+		if ( $needs_upscale && isset( $saved['path'], $saved['mime-type'] ) ) {
+			self::sharpen_upscaled_image( (string) $saved['path'], (string) $saved['mime-type'] );
+		}
+
 		if ( ! is_array( $meta ) ) {
 			$meta = [];
 		}
@@ -883,6 +956,43 @@ class Repository {
 		];
 		wp_update_attachment_metadata( $attachment_id, $meta );
 		return true;
+	}
+
+	/**
+	 * Mild unsharp-mask-style sharpen via GD's imageconvolution() — no
+	 * Imagick dependency (not every host, e.g. Kinsta, has it enabled).
+	 * Silently skipped if GD's convolution support or the file's format
+	 * isn't available; the crop itself already succeeded either way.
+	 */
+	private static function sharpen_upscaled_image( string $path, string $mime ): void {
+		if ( ! function_exists( 'imageconvolution' ) ) {
+			return;
+		}
+
+		if ( $mime === 'image/jpeg' && function_exists( 'imagecreatefromjpeg' ) ) {
+			$image = @imagecreatefromjpeg( $path );
+		} elseif ( $mime === 'image/png' && function_exists( 'imagecreatefrompng' ) ) {
+			$image = @imagecreatefrompng( $path );
+		} else {
+			return;
+		}
+		if ( ! $image ) {
+			return;
+		}
+
+		$sharpen = [
+			[ -1, -1, -1 ],
+			[ -1, 16, -1 ],
+			[ -1, -1, -1 ],
+		];
+		imageconvolution( $image, $sharpen, 8, 0 );
+
+		if ( $mime === 'image/jpeg' ) {
+			imagejpeg( $image, $path, 82 );
+		} else {
+			imagepng( $image, $path );
+		}
+		imagedestroy( $image );
 	}
 
 	/**

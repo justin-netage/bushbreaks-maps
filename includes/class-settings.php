@@ -666,6 +666,55 @@ class Settings {
 				</p>
 
 				<?php
+				$low_res       = Repository::find_low_res_feed_images();
+				$low_res_count = count( $low_res );
+				?>
+				<details class="bbm-collapsible">
+					<summary>
+						<?php
+						if ( $low_res_count === 0 ) {
+							esc_html_e( 'Images below Meta\'s recommended size (0)', 'bushbreaks-maps' );
+						} else {
+							printf(
+								/* translators: %d: number of undersized images */
+								esc_html( _n( "Images below Meta's recommended size (%d)", "Images below Meta's recommended size (%d)", $low_res_count, 'bushbreaks-maps' ) ),
+								(int) $low_res_count
+							);
+						}
+						?>
+					</summary>
+					<div class="bbm-collapsible-body">
+						<?php if ( $low_res_count === 0 ) : ?>
+							<p><?php esc_html_e( 'Every feed image meets the recommended 500x500 minimum.', 'bushbreaks-maps' ); ?></p>
+						<?php else : ?>
+							<p><?php esc_html_e( 'These originals are smaller than 500px on at least one side. Regeneration still crops them to fill the feed size, but upscaling this far can look soft — replace the source photo where possible.', 'bushbreaks-maps' ); ?></p>
+							<table class="widefat striped" style="max-width:720px;">
+								<thead>
+									<tr>
+										<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
+										<th><?php esc_html_e( 'Original size', 'bushbreaks-maps' ); ?></th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ( $low_res as $lr ) : ?>
+										<tr>
+											<td><?php echo esc_html( $lr['title'] ); ?></td>
+											<td><code><?php echo esc_html( $lr['width'] . 'x' . $lr['height'] ); ?></code></td>
+											<td>
+												<?php if ( $lr['edit_link'] ) : ?>
+													<a href="<?php echo esc_url( $lr['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
+												<?php endif; ?>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						<?php endif; ?>
+					</div>
+				</details>
+
+				<?php
 				$missing       = Repository::find_missing_coords();
 				$missing_count = count( $missing );
 				?>
