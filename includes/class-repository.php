@@ -1151,11 +1151,54 @@ class Repository {
 		if ( $id ) {
 			return (int) $id;
 		}
+
 		$stripped = preg_replace( '/-\d+x\d+(?=\.[a-zA-Z0-9]+$)/', '', $url );
 		if ( $stripped !== null && $stripped !== $url ) {
 			$id = attachment_url_to_postid( $stripped );
+			if ( $id ) {
+				return (int) $id;
+			}
 		}
-		return (int) $id;
+
+		// attachment_url_to_postid() only matches a URL that starts with
+		// this site's *currently configured* uploads base URL — a stored
+		// URL from before an http->https or www<->bare domain change
+		// won't match that prefix even though the attachment is real.
+		// Match on the relative "wp-content/uploads/..." path instead,
+		// which is scheme/domain independent.
+		foreach ( array_unique( array_filter( [ $url, $stripped ] ) ) as $candidate ) {
+			$id = self::attachment_id_from_uploads_path( $candidate );
+			if ( $id ) {
+				return $id;
+			}
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Match a URL's "wp-content/uploads/..." path against _wp_attached_file
+	 * directly, independent of the site's currently configured scheme/domain.
+	 */
+	private static function attachment_id_from_uploads_path( string $url ): int {
+		$path = (string) parse_url( $url, PHP_URL_PATH );
+		$pos  = strpos( $path, '/wp-content/uploads/' );
+		if ( $pos === false ) {
+			return 0;
+		}
+		$relative = ltrim( substr( $path, $pos + strlen( '/wp-content/uploads/' ) ), '/' );
+		if ( $relative === '' ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$post_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
+				$relative
+			)
+		);
+		return $post_id ? (int) $post_id : 0;
 	}
 
 	/**
