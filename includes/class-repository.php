@@ -1009,6 +1009,18 @@ class Repository {
 			if ( is_numeric( $id ) ) {
 				return (int) $id;
 			}
+			if ( isset( $entry['guid'] ) && is_string( $entry['guid'] ) && filter_var( $entry['guid'], FILTER_VALIDATE_URL ) ) {
+				$id = self::attachment_id_from_url( $entry['guid'] );
+				return $id ? $id : null;
+			}
+			return null;
+		}
+		// A field can store a raw URL to a specific already-generated size
+		// instead of an attachment reference — resolve it back so the
+		// regen tool can actually warm the crop for it too.
+		if ( is_string( $entry ) && filter_var( $entry, FILTER_VALIDATE_URL ) ) {
+			$id = self::attachment_id_from_url( $entry );
+			return $id ? $id : null;
 		}
 		return null;
 	}
@@ -1127,6 +1139,45 @@ class Repository {
 	}
 
 	/**
+	 * Resolve a URL back to its attachment ID, if it's hosted in this
+	 * site's own media library. attachment_url_to_postid() matches the
+	 * exact stored file path, so a URL pointing at a specific generated
+	 * size (e.g. "...-1200x900.jpg") often won't match the original's
+	 * _wp_attached_file — retry with any trailing "-WxH" suffix stripped.
+	 * Returns 0 if nothing matches (e.g. a genuinely external image).
+	 */
+	private static function attachment_id_from_url( string $url ): int {
+		$id = attachment_url_to_postid( $url );
+		if ( $id ) {
+			return (int) $id;
+		}
+		$stripped = preg_replace( '/-\d+x\d+(?=\.[a-zA-Z0-9]+$)/', '', $url );
+		if ( $stripped !== null && $stripped !== $url ) {
+			$id = attachment_url_to_postid( $stripped );
+		}
+		return (int) $id;
+	}
+
+	/**
+	 * A Pods field can store a raw URL to a specific already-generated
+	 * size instead of an attachment reference — in that case the feed's
+	 * requested $size would otherwise be silently ignored (the stored URL
+	 * is whatever size happened to be picked when the field was filled
+	 * in). Resolve back to the attachment so cropping still applies;
+	 * fall back to the stored URL verbatim if it isn't a local attachment.
+	 */
+	private static function resolve_stored_url( string $url, string $size ): string {
+		$attachment_id = self::attachment_id_from_url( $url );
+		if ( $attachment_id ) {
+			$resolved = self::attachment_image_url( $attachment_id, $size );
+			if ( $resolved !== '' ) {
+				return $resolved;
+			}
+		}
+		return $url;
+	}
+
+	/**
 	 * Resolve a Pods image/file field to a URL. Handles attachment ID,
 	 * array of attachment data (single or multiple), and plain URL strings.
 	 */
@@ -1145,7 +1196,7 @@ class Repository {
 				return self::attachment_image_url( (int) $val, $size );
 			}
 			if ( filter_var( $val, FILTER_VALIDATE_URL ) ) {
-				return $val;
+				return self::resolve_stored_url( $val, $size );
 			}
 			return '';
 		}
@@ -1169,7 +1220,7 @@ class Repository {
 				}
 			}
 			if ( isset( $val['guid'] ) && is_string( $val['guid'] ) && filter_var( $val['guid'], FILTER_VALIDATE_URL ) ) {
-				return $val['guid'];
+				return self::resolve_stored_url( $val['guid'], $size );
 			}
 		}
 
@@ -1203,14 +1254,14 @@ class Repository {
 			if ( is_numeric( $entry ) || ( is_string( $entry ) && ctype_digit( $entry ) ) ) {
 				$url = self::attachment_image_url( (int) $entry, $size );
 			} elseif ( is_string( $entry ) && filter_var( $entry, FILTER_VALIDATE_URL ) ) {
-				$url = $entry;
+				$url = self::resolve_stored_url( $entry, $size );
 			} elseif ( is_array( $entry ) ) {
 				$id = $entry['ID'] ?? $entry['id'] ?? null;
 				if ( is_numeric( $id ) ) {
 					$url = self::attachment_image_url( (int) $id, $size );
 				}
 				if ( $url === '' && isset( $entry['guid'] ) && is_string( $entry['guid'] ) && filter_var( $entry['guid'], FILTER_VALIDATE_URL ) ) {
-					$url = $entry['guid'];
+					$url = self::resolve_stored_url( $entry['guid'], $size );
 				}
 			}
 
