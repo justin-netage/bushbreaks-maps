@@ -664,6 +664,11 @@ class Settings {
 					<button type="button" class="button button-primary" id="bbm-regen-feed-images"><?php esc_html_e( 'Run regeneration', 'bushbreaks-maps' ); ?></button>
 					<span id="bbm-regen-feed-images-status" style="margin-left:10px;"></span>
 				</p>
+				<?php if ( defined( 'BBM_FEED_DEBUG' ) && BBM_FEED_DEBUG ) : ?>
+					<p class="description"><?php esc_html_e( 'Debug logging is ON (BBM_FEED_DEBUG in wp-config.php) — check the PHP error log while running this.', 'bushbreaks-maps' ); ?></p>
+				<?php else : ?>
+					<p class="description"><?php esc_html_e( "If the counts here don't add up, add define( 'BBM_FEED_DEBUG', true ); to wp-config.php and check the PHP error log for details on each image the tool looks at.", 'bushbreaks-maps' ); ?></p>
+				<?php endif; ?>
 
 				<?php
 				$low_res       = Repository::find_low_res_feed_images();

@@ -29,6 +29,19 @@ class Repository {
 		add_action( 'wp_ajax_bushbreaks_maps_regen_feed_images', [ __CLASS__, 'ajax_regen_feed_images' ] );
 	}
 
+	/**
+	 * Temporary diagnostic logging for the feed image crop pipeline.
+	 * Off by default — enable with `define('BBM_FEED_DEBUG', true);` in
+	 * wp-config.php, then tail the PHP error log while running the regen
+	 * tool or loading a feed URL.
+	 */
+	private static function feed_debug_log( string $message ): void {
+		if ( ! ( defined( 'BBM_FEED_DEBUG' ) && BBM_FEED_DEBUG ) ) {
+			return;
+		}
+		error_log( '[Bushbreaks Maps feed] ' . $message );
+	}
+
 	public static function register_image_size(): void {
 		add_image_size( self::FEED_IMAGE_SIZE, 1200, 1200, true );
 	}
@@ -913,11 +926,13 @@ class Repository {
 	public static function warm_feed_image( int $attachment_id ): bool {
 		$meta = wp_get_attachment_metadata( $attachment_id );
 		if ( ! empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): already warmed, skipping" );
 			return true;
 		}
 
 		$file = get_attached_file( $attachment_id );
 		if ( ! $file || ! file_exists( $file ) ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): no file on disk (get_attached_file returned " . var_export( $file, true ) . ')' );
 			return false;
 		}
 
@@ -930,11 +945,13 @@ class Repository {
 		}
 		$editor = wp_get_image_editor( $file );
 		if ( is_wp_error( $editor ) ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): wp_get_image_editor() error: " . $editor->get_error_message() );
 			return false;
 		}
 		$editor->resize( 1200, 1200, true );
 		$saved = $editor->save();
 		if ( is_wp_error( $saved ) ) {
+			self::feed_debug_log( "warm_feed_image($attachment_id): editor save() error: " . $saved->get_error_message() );
 			return false;
 		}
 
@@ -955,6 +972,7 @@ class Repository {
 			'mime-type' => $saved['mime-type'],
 		];
 		wp_update_attachment_metadata( $attachment_id, $meta );
+		self::feed_debug_log( "warm_feed_image($attachment_id): cropped to {$saved['width']}x{$saved['height']}, file={$saved['file']}" );
 		return true;
 	}
 
@@ -1045,7 +1063,9 @@ class Repository {
 				$val = $first;
 			}
 		}
-		return self::extract_attachment_id( $val );
+		$id = self::extract_attachment_id( $val );
+		self::feed_debug_log( "single_field_attachment_id(post=$post_id, field=$field): raw value=" . wp_json_encode( $val ) . ' -> ' . var_export( $id, true ) );
+		return $id;
 	}
 
 	/**
@@ -1105,6 +1125,7 @@ class Repository {
 
 		$total     = (int) $query->found_posts;
 		$processed = 0;
+		$found     = 0;
 		$warmed    = 0;
 
 		foreach ( $query->posts as $post_id ) {
@@ -1117,7 +1138,10 @@ class Repository {
 			if ( $thumb_id ) {
 				$ids[] = (int) $thumb_id;
 			}
-			foreach ( array_unique( $ids ) as $attachment_id ) {
+			$unique_ids = array_unique( $ids );
+			self::feed_debug_log( "regen post $post_id: attachment ids found = [" . implode( ',', $unique_ids ) . ']' );
+			foreach ( $unique_ids as $attachment_id ) {
+				$found++;
 				if ( self::warm_feed_image( $attachment_id ) ) {
 					$warmed++;
 				}
@@ -1133,6 +1157,7 @@ class Repository {
 				'total'  => $total,
 				'next'   => $next,
 				'done'   => $processed === 0 || $next >= $total,
+				'found'  => $found,
 				'warmed' => $warmed,
 			]
 		);
@@ -1149,6 +1174,7 @@ class Repository {
 	private static function attachment_id_from_url( string $url ): int {
 		$id = attachment_url_to_postid( $url );
 		if ( $id ) {
+			self::feed_debug_log( "attachment_id_from_url: direct match — '$url' -> attachment $id" );
 			return (int) $id;
 		}
 
@@ -1156,6 +1182,7 @@ class Repository {
 		if ( $stripped !== null && $stripped !== $url ) {
 			$id = attachment_url_to_postid( $stripped );
 			if ( $id ) {
+				self::feed_debug_log( "attachment_id_from_url: stripped match — '$url' as '$stripped' -> attachment $id" );
 				return (int) $id;
 			}
 		}
@@ -1169,10 +1196,12 @@ class Repository {
 		foreach ( array_unique( array_filter( [ $url, $stripped ] ) ) as $candidate ) {
 			$id = self::attachment_id_from_uploads_path( $candidate );
 			if ( $id ) {
+				self::feed_debug_log( "attachment_id_from_url: uploads-path match — '$url' as '$candidate' -> attachment $id" );
 				return $id;
 			}
 		}
 
+		self::feed_debug_log( "attachment_id_from_url: NO MATCH for '$url'" );
 		return 0;
 	}
 
@@ -1184,6 +1213,7 @@ class Repository {
 		$path = (string) parse_url( $url, PHP_URL_PATH );
 		$pos  = strpos( $path, '/wp-content/uploads/' );
 		if ( $pos === false ) {
+			self::feed_debug_log( "attachment_id_from_uploads_path: no '/wp-content/uploads/' segment in path '$path' (from '$url')" );
 			return 0;
 		}
 		$relative = ltrim( substr( $path, $pos + strlen( '/wp-content/uploads/' ) ), '/' );
@@ -1198,6 +1228,9 @@ class Repository {
 				$relative
 			)
 		);
+		if ( ! $post_id ) {
+			self::feed_debug_log( "attachment_id_from_uploads_path: no _wp_attached_file row matches '$relative'" );
+		}
 		return $post_id ? (int) $post_id : 0;
 	}
 
@@ -1214,9 +1247,11 @@ class Repository {
 		if ( $attachment_id ) {
 			$resolved = self::attachment_image_url( $attachment_id, $size );
 			if ( $resolved !== '' ) {
+				self::feed_debug_log( "resolve_stored_url: '$url' -> attachment $attachment_id -> '$resolved'" );
 				return $resolved;
 			}
 		}
+		self::feed_debug_log( "resolve_stored_url: falling back to stored URL unchanged for '$url' (resolved attachment_id=$attachment_id)" );
 		return $url;
 	}
 
