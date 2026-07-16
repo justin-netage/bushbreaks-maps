@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.28
+Stable tag: 0.9.29
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,10 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.29 =
+* Adds a separate "unresolved" count/log for listings whose main-image field never resolves to any attachment at all (previously silently excluded from the regen tool's found/warmed counts, making a 100% ratio there misleading).
+* Adds BBM_FEED_DEBUG logging to resolve_image(), resolve_gallery(), and attachment_image_url() themselves — the actual functions the live feed calls — not just the regen tool's own resolution path, to see exactly what a real feed request does with an already-cropped attachment.
 
 = 0.9.28 =
 * The "Regenerate feed images" status now shows a running "X/Y images cropped" count (not just listings processed), so it's immediately visible whether the tool is finding and cropping anything at all.
