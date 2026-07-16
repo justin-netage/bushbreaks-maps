@@ -907,12 +907,15 @@ class Repository {
 		if ( $size === self::FEED_IMAGE_SIZE ) {
 			$meta = wp_get_attachment_metadata( $attachment_id );
 			if ( empty( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) ) {
+				self::feed_debug_log( "attachment_image_url($attachment_id): '" . self::FEED_IMAGE_SIZE . "' NOT in metadata, falling back. known sizes=" . wp_json_encode( array_keys( (array) ( $meta['sizes'] ?? [] ) ) ) );
 				$url = wp_get_attachment_image_url( $attachment_id, 'large' );
 				return $url ?: (string) wp_get_attachment_image_url( $attachment_id, 'full' );
 			}
+			self::feed_debug_log( "attachment_image_url($attachment_id): '" . self::FEED_IMAGE_SIZE . "' found in metadata = " . wp_json_encode( $meta['sizes'][ self::FEED_IMAGE_SIZE ] ) );
 		}
 
 		$url = wp_get_attachment_image_url( $attachment_id, $size );
+		self::feed_debug_log( "attachment_image_url($attachment_id, $size): wp_get_attachment_image_url() -> '" . ( $url ?: '(empty)' ) . "'" );
 		return $url ?: '';
 	}
 
@@ -1123,23 +1126,45 @@ class Repository {
 			]
 		);
 
-		$total     = (int) $query->found_posts;
-		$processed = 0;
-		$found     = 0;
-		$warmed    = 0;
+		$total      = (int) $query->found_posts;
+		$processed  = 0;
+		$found      = 0;
+		$warmed     = 0;
+		$unresolved = [];
 
 		foreach ( $query->posts as $post_id ) {
-			$ids       = self::gallery_field_attachment_ids( (int) $post_id, (string) ( $opts['feed_gallery_field'] ?? '' ) );
-			$single_id = self::single_field_attachment_id( (int) $post_id, (string) ( $opts['image_field'] ?? '' ) );
+			$post_id_int = (int) $post_id;
+			$ids         = self::gallery_field_attachment_ids( $post_id_int, (string) ( $opts['feed_gallery_field'] ?? '' ) );
+			$single_id   = self::single_field_attachment_id( $post_id_int, (string) ( $opts['image_field'] ?? '' ) );
+
 			if ( $single_id !== null ) {
 				$ids[] = $single_id;
+			} else {
+				// found/warmed only count images we could match to an
+				// attachment — a listing whose stored value never
+				// resolves at all is silently absent from both, which
+				// makes a 100% found/warmed ratio misleading. Surface it
+				// separately, unconditionally (no BBM_FEED_DEBUG needed),
+				// since this is exactly the case that needs attention.
+				$raw_field = (string) ( $opts['image_field'] ?? '' );
+				$raw_value = $raw_field !== '' ? get_post_meta( $post_id_int, $raw_field, true ) : '';
+				if ( ! empty( $raw_value ) ) {
+					$raw_display  = is_scalar( $raw_value ) ? (string) $raw_value : wp_json_encode( $raw_value );
+					$unresolved[] = [
+						'id'    => $post_id_int,
+						'title' => get_the_title( $post_id_int ),
+						'raw'   => $raw_display,
+					];
+					error_log( "[Bushbreaks Maps feed] UNRESOLVED main image for post $post_id_int (" . get_the_title( $post_id_int ) . "): $raw_display" );
+				}
 			}
+
 			$thumb_id = get_post_thumbnail_id( $post_id );
 			if ( $thumb_id ) {
 				$ids[] = (int) $thumb_id;
 			}
 			$unique_ids = array_unique( $ids );
-			self::feed_debug_log( "regen post $post_id: attachment ids found = [" . implode( ',', $unique_ids ) . ']' );
+			self::feed_debug_log( "regen post $post_id_int: attachment ids found = [" . implode( ',', $unique_ids ) . ']' );
 			foreach ( $unique_ids as $attachment_id ) {
 				$found++;
 				if ( self::warm_feed_image( $attachment_id ) ) {
@@ -1154,11 +1179,12 @@ class Repository {
 		$next = $offset + $processed;
 		wp_send_json_success(
 			[
-				'total'  => $total,
-				'next'   => $next,
-				'done'   => $processed === 0 || $next >= $total,
-				'found'  => $found,
-				'warmed' => $warmed,
+				'total'      => $total,
+				'next'       => $next,
+				'done'       => $processed === 0 || $next >= $total,
+				'found'      => $found,
+				'warmed'     => $warmed,
+				'unresolved' => $unresolved,
 			]
 		);
 	}
@@ -1269,6 +1295,12 @@ class Repository {
 			return '';
 		}
 
+		$result = self::resolve_image_value( $val, $size );
+		self::feed_debug_log( "resolve_image(post=$post_id, field=$field, size=$size): raw=" . ( is_scalar( $val ) ? $val : wp_json_encode( $val ) ) . " -> '$result'" );
+		return $result;
+	}
+
+	private static function resolve_image_value( $val, string $size ): string {
 		if ( is_string( $val ) ) {
 			if ( ctype_digit( $val ) ) {
 				return self::attachment_image_url( (int) $val, $size );
@@ -1342,6 +1374,8 @@ class Repository {
 					$url = self::resolve_stored_url( $entry['guid'], $size );
 				}
 			}
+
+			self::feed_debug_log( "resolve_gallery(post=$post_id, field=$field, size=$size): entry=" . ( is_scalar( $entry ) ? $entry : wp_json_encode( $entry ) ) . " -> '$url'" );
 
 			if ( $url === '' || $url === $exclude_url || in_array( $url, $urls, true ) ) {
 				continue;
