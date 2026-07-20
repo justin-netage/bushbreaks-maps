@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.30
+Stable tag: 0.9.31
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.31 =
+* New "Feed URL slug" setting (Facebook feed tab, default "bushbreaks-feed") — lets each site running this plugin use its own feed path, e.g. "weekendbreaks-feed" for /weekendbreaks-feed/products.xml on another site. Rewrite rules flush automatically when it's changed.
 
 = 0.9.30 =
 * Fixes the actual root cause of feed images never getting cropped: WordPress's own WP_Image_Editor::resize( $w, $h, true ) refuses to upscale past a source image's original pixel dimensions even with hard crop enabled, so every source smaller than 1200px on its short side was silently re-saved unchanged instead of cropped — no error, just a no-op recorded as a success. Cropping now uses WP_Image_Editor::crop() directly (a centered square from the original resampled up to exactly 1200x1200), which has no such limit.

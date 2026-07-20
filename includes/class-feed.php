@@ -8,14 +8,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Emits Meta (Facebook) catalog feeds built from the accommodation listings:
  *
- *  - Hotels feed       /bushbreaks-feed/facebook.xml      (?bbm_feed=facebook)
+ *  - Hotels feed       /{slug}/facebook.xml      (?bbm_feed=facebook)
  *    Meta travel XML: hotel_id, name, address, lat/long, base_price, image…
- *  - Destinations feed /bushbreaks-feed/destinations.xml  (?bbm_feed=destinations)
+ *  - Destinations feed /{slug}/destinations.xml  (?bbm_feed=destinations)
  *    Meta travel XML: destination_id, name, address, lat/long, price, image…
- *  - Products feed     /bushbreaks-feed/products.xml      (?bbm_feed=products)
+ *  - Products feed     /{slug}/products.xml      (?bbm_feed=products)
  *    RSS 2.0 + Google product namespace, enriched with product_type
  *    (Holiday Destinations) and custom_label_0-4 (province, reserve,
  *    categories, features, break type).
+ *
+ * {slug} is the "Feed URL slug" setting (default "bushbreaks-feed"), so
+ * multiple sites running this plugin can each have a distinct feed path.
  *
  * Each lodge is one entry in every feed. Paste a URL into Commerce Manager →
  * the matching catalog type → Data sources → "Scheduled feed".
@@ -25,7 +28,7 @@ class Feed {
 	public const QUERY_VAR = 'bbm_feed';
 
 	private const REWRITE_FLAG = 'bushbreaks_maps_feed_rewrites';
-	private const REWRITE_VER  = '4';
+	private const REWRITE_VER  = '5';
 
 	public function register(): void {
 		add_action( 'init', [ $this, 'add_rewrite_rule' ] );
@@ -39,28 +42,38 @@ class Feed {
 		add_action( 'template_redirect', [ $this, 'maybe_render' ], 1 );
 	}
 
+	/** The configured feed URL path segment, defensively re-sanitized. */
+	private static function url_slug(): string {
+		$slug = sanitize_title( (string) Settings::get( 'feed_url_slug' ) );
+		return $slug !== '' ? $slug : 'bushbreaks-feed';
+	}
+
 	public function add_rewrite_rule(): void {
+		$slug = self::url_slug();
+
 		add_rewrite_rule(
-			'^bushbreaks-feed/facebook\.xml/?$',
+			'^' . $slug . '/facebook\.xml/?$',
 			'index.php?' . self::QUERY_VAR . '=facebook',
 			'top'
 		);
 		add_rewrite_rule(
-			'^bushbreaks-feed/destinations\.xml/?$',
+			'^' . $slug . '/destinations\.xml/?$',
 			'index.php?' . self::QUERY_VAR . '=destinations',
 			'top'
 		);
 		add_rewrite_rule(
-			'^bushbreaks-feed/products\.xml/?$',
+			'^' . $slug . '/products\.xml/?$',
 			'index.php?' . self::QUERY_VAR . '=products',
 			'top'
 		);
 
-		// Flush once when the rule set changes so the pretty URLs resolve
-		// without forcing the admin to re-save permalinks.
-		if ( get_option( self::REWRITE_FLAG ) !== self::REWRITE_VER ) {
+		// Flush once when the rule set (or the configured slug) changes,
+		// so the pretty URLs resolve without forcing the admin to re-save
+		// permalinks.
+		$marker = self::REWRITE_VER . ':' . $slug;
+		if ( get_option( self::REWRITE_FLAG ) !== $marker ) {
 			flush_rewrite_rules( false );
-			update_option( self::REWRITE_FLAG, self::REWRITE_VER );
+			update_option( self::REWRITE_FLAG, $marker );
 		}
 	}
 
@@ -87,11 +100,11 @@ class Feed {
 	 * the pretty permalink when available, otherwise the query arg.
 	 */
 	public static function feed_url( string $type = 'facebook' ): string {
-		$slug = in_array( $type, [ 'destinations', 'products' ], true ) ? $type : 'facebook';
+		$type_slug = in_array( $type, [ 'destinations', 'products' ], true ) ? $type : 'facebook';
 		if ( get_option( 'permalink_structure' ) ) {
-			return home_url( '/bushbreaks-feed/' . $slug . '.xml' );
+			return home_url( '/' . self::url_slug() . '/' . $type_slug . '.xml' );
 		}
-		return add_query_arg( self::QUERY_VAR, $slug, home_url( '/' ) );
+		return add_query_arg( self::QUERY_VAR, $type_slug, home_url( '/' ) );
 	}
 
 	public function maybe_render(): void {
