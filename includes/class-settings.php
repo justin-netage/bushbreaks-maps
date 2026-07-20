@@ -27,6 +27,7 @@ class Settings {
 			'valid_from_field'    => 'valid_from',
 			'valid_until_field'   => 'valid_until',
 			'currency_symbol'     => 'R',
+			'feed_url_slug'       => 'bushbreaks-feed',
 			'feed_currency'       => 'ZAR',
 			'feed_title'          => 'BushBreaks',
 			'feed_brand'          => '',
@@ -179,6 +180,11 @@ class Settings {
 		if ( isset( $input['feed_currency'] ) ) {
 			$code = strtoupper( trim( (string) $input['feed_currency'] ) );
 			$out['feed_currency'] = preg_match( '/^[A-Z]{3}$/', $code ) ? $code : 'ZAR';
+		}
+
+		if ( isset( $input['feed_url_slug'] ) ) {
+			$slug = sanitize_title( (string) $input['feed_url_slug'] );
+			$out['feed_url_slug'] = $slug !== '' ? $slug : 'bushbreaks-feed';
 		}
 
 		$out['enable_region_filter'] = ! empty( $input['enable_region_filter'] );
@@ -532,6 +538,13 @@ class Settings {
 					<p><?php esc_html_e( 'Two feeds built from your accommodation listings, in Meta\'s travel catalog XML format. Each lodge appears in both. Add each URL to the matching catalog type in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
 					<table class="form-table" role="presentation">
 						<tr>
+							<th><label for="bbm_feed_url_slug"><?php esc_html_e( 'Feed URL slug', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_url_slug" name="<?php echo $option_attr; ?>[feed_url_slug]" type="text" value="<?php echo esc_attr( $opts['feed_url_slug'] ); ?>" class="regular-text" placeholder="bushbreaks-feed">
+								<p class="description"><?php esc_html_e( 'The path segment used by all three feed URLs below, e.g. "weekendbreaks-feed" gives /weekendbreaks-feed/products.xml. Letters, numbers and hyphens only. If you change this, update the URL already submitted to Meta Commerce Manager.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+						<tr>
 							<th><?php esc_html_e( 'Hotels feed URL', 'bushbreaks-maps' ); ?></th>
 							<td>
 								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'facebook' ) ); ?>">
@@ -560,7 +573,17 @@ class Settings {
 									<a href="<?php echo esc_url( Feed::feed_url( 'products' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
 								</p>
 								<?php if ( ! get_option( 'permalink_structure' ) ) : ?>
-									<p class="description"><em><?php esc_html_e( 'Tip: enable pretty permalinks (Settings → Permalinks) for cleaner /bushbreaks-feed/*.xml URLs.', 'bushbreaks-maps' ); ?></em></p>
+									<p class="description">
+										<em>
+											<?php
+											printf(
+												/* translators: %s: feed URL slug, e.g. bushbreaks-feed */
+												esc_html__( 'Tip: enable pretty permalinks (Settings → Permalinks) for cleaner /%s/*.xml URLs.', 'bushbreaks-maps' ),
+												esc_html( $opts['feed_url_slug'] )
+											);
+											?>
+										</em>
+									</p>
 								<?php endif; ?>
 							</td>
 						</tr>
