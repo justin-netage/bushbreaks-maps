@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.31
+Stable tag: 0.9.32
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,9 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.32 =
+* New "Listings excluded from the Facebook feeds" list under Settings → Tools. The feeds silently skip any published listing missing an image, coordinates or a price (Meta rejects hotel entries without them) — this list now shows exactly which listings are skipped, which feed(s) they're missing from, and why. When a price field is filled in but can't be read as a number (e.g. "POA" or a price range), the raw stored value is shown so the problem is obvious.
 
 = 0.9.31 =
 * New "Feed URL slug" setting (Facebook feed tab, default "bushbreaks-feed") — lets each site running this plugin use its own feed path, e.g. "weekendbreaks-feed" for /weekendbreaks-feed/products.xml on another site. Rewrite rules flush automatically when it's changed.

@@ -514,6 +514,68 @@ class Repository {
 	}
 
 	/**
+	 * List published listings that are excluded from one or more Meta feeds,
+	 * with the reason(s). Applies exactly the same rules the feed renderers
+	 * use: Hotels needs image + coordinates + price, Destinations needs
+	 * image + coordinates, Products needs image + price. When a price field
+	 * holds a value that can't be parsed as a number (e.g. "POA" or a
+	 * range), the raw value is included so the admin can see why it didn't
+	 * count.
+	 */
+	public static function find_feed_excluded(): array {
+		$opts          = Settings::all();
+		$normal_field  = (string) ( $opts['normal_price_field']  ?? '' );
+		$special_field = (string) ( $opts['special_price_field'] ?? '' );
+
+		$excluded = [];
+		foreach ( self::listing_rows() as $row ) {
+			$no_image  = $row['image'] === '';
+			$no_coords = $row['lat'] === null || $row['lng'] === null;
+			$no_price  = $row['price'] === null && $row['sale_price'] === null;
+
+			if ( ! $no_image && ! $no_coords && ! $no_price ) {
+				continue;
+			}
+
+			$feeds = [ __( 'Hotels', 'bushbreaks-maps' ) ];
+			if ( $no_image || $no_coords ) {
+				$feeds[] = __( 'Destinations', 'bushbreaks-maps' );
+			}
+			if ( $no_image || $no_price ) {
+				$feeds[] = __( 'Products', 'bushbreaks-maps' );
+			}
+
+			// Raw price field values, so a filled-in-but-unparseable price
+			// is distinguishable from an empty one.
+			$price_raw = [];
+			if ( $no_price ) {
+				foreach ( [ $normal_field, $special_field ] as $pf ) {
+					if ( $pf === '' ) {
+						continue;
+					}
+					$raw = get_post_meta( (int) $row['id'], $pf, true );
+					if ( is_scalar( $raw ) && trim( (string) $raw ) !== '' ) {
+						$price_raw[] = trim( (string) $raw );
+					}
+				}
+			}
+
+			$excluded[] = [
+				'id'        => (int) $row['id'],
+				'title'     => $row['name'],
+				'edit_link' => get_edit_post_link( (int) $row['id'], 'raw' ),
+				'no_image'  => $no_image,
+				'no_coords' => $no_coords,
+				'no_price'  => $no_price,
+				'price_raw' => implode( ' / ', $price_raw ),
+				'feeds'     => $feeds,
+			];
+		}
+
+		return $excluded;
+	}
+
+	/**
 	 * Flatten every published listing into the raw fields the Meta travel
 	 * (Hotels / Destinations) and product feeds need. Prices are raw floats
 	 * (or null); coordinates are floats (or null) and the caller decides

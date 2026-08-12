@@ -799,6 +799,73 @@ class Settings {
 					</div>
 				</details>
 
+				<?php
+				$feed_excluded       = Repository::find_feed_excluded();
+				$feed_excluded_count = count( $feed_excluded );
+				?>
+				<details class="bbm-collapsible" <?php echo $feed_excluded_count > 0 ? 'open' : ''; ?>>
+					<summary>
+						<?php
+						printf(
+							/* translators: %d: number of listings excluded from the feeds */
+							esc_html__( 'Listings excluded from the Facebook feeds (%d)', 'bushbreaks-maps' ),
+							(int) $feed_excluded_count
+						);
+						?>
+					</summary>
+					<div class="bbm-collapsible-body">
+						<?php if ( $feed_excluded_count === 0 ) : ?>
+							<p><?php esc_html_e( 'Every published listing appears in all three feeds.', 'bushbreaks-maps' ); ?></p>
+						<?php else : ?>
+							<p><?php esc_html_e( 'Meta requires every hotel to carry an image, coordinates and a price, so listings missing any of those are skipped rather than invalidating the whole feed. Fix the missing field(s) below and the listing is included the next time Meta fetches the feed.', 'bushbreaks-maps' ); ?></p>
+							<table class="widefat striped" style="max-width:900px;">
+								<thead>
+									<tr>
+										<th><?php esc_html_e( 'Lodge', 'bushbreaks-maps' ); ?></th>
+										<th><?php esc_html_e( 'Missing', 'bushbreaks-maps' ); ?></th>
+										<th><?php esc_html_e( 'Excluded from', 'bushbreaks-maps' ); ?></th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ( $feed_excluded as $fe ) : ?>
+										<tr>
+											<td><?php echo esc_html( $fe['title'] ); ?></td>
+											<td>
+												<?php
+												$reasons = [];
+												if ( $fe['no_image'] ) {
+													$reasons[] = esc_html__( 'image (no image field value or featured image)', 'bushbreaks-maps' );
+												}
+												if ( $fe['no_coords'] ) {
+													$reasons[] = esc_html__( 'coordinates', 'bushbreaks-maps' );
+												}
+												if ( $fe['no_price'] ) {
+													$reasons[] = $fe['price_raw'] !== ''
+														? sprintf(
+															/* translators: %s: the raw price field value */
+															esc_html__( 'price — the stored value %s could not be read as a number', 'bushbreaks-maps' ),
+															'<code>' . esc_html( $fe['price_raw'] ) . '</code>'
+														)
+														: esc_html__( 'price (both price fields are empty)', 'bushbreaks-maps' );
+												}
+												echo wp_kses( implode( '<br>', $reasons ), [ 'code' => [], 'br' => [] ] );
+												?>
+											</td>
+											<td><?php echo esc_html( implode( ', ', $fe['feeds'] ) ); ?></td>
+											<td>
+												<?php if ( $fe['edit_link'] ) : ?>
+													<a href="<?php echo esc_url( $fe['edit_link'] ); ?>"><?php esc_html_e( 'Edit', 'bushbreaks-maps' ); ?></a>
+												<?php endif; ?>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</tbody>
+							</table>
+						<?php endif; ?>
+					</div>
+				</details>
+
 				<hr />
 
 				<h2><?php esc_html_e( 'Category order', 'bushbreaks-maps' ); ?></h2>
