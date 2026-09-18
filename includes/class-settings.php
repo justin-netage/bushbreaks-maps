@@ -33,6 +33,7 @@ class Settings {
 			'feed_brand'          => '',
 			'feed_description_field' => 'about_lodge',
 			'feed_product_type'   => 'Holiday Destinations',
+			'feed_google_product_category' => '',
 			'feed_features_field' => 'unique_selling_points',
 			'feed_break_type_field' => 'break_type',
 			'feed_country'        => 'South Africa',
@@ -145,7 +146,7 @@ class Settings {
 			return $out;
 		}
 
-		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_features_field', 'feed_break_type_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'feed_gallery_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
+		$text_keys = [ 'post_type', 'list_heading_label', 'lat_field', 'lng_field', 'address_field', 'iframe_field', 'location_field', 'destination_taxonomy', 'category_taxonomy', 'image_field', 'normal_price_field', 'special_price_field', 'price_description_field', 'valid_from_field', 'valid_until_field', 'currency_symbol', 'feed_title', 'feed_brand', 'feed_description_field', 'feed_product_type', 'feed_google_product_category', 'feed_features_field', 'feed_break_type_field', 'feed_country', 'feed_city_field', 'feed_star_rating_field', 'feed_gallery_field', 'thumbnail_size', 'google_maps_api_key', 'tile_url', 'tile_attr' ];
 		foreach ( $text_keys as $k ) {
 			if ( isset( $input[ $k ] ) ) {
 				$out[ $k ] = sanitize_text_field( (string) $input[ $k ] );
@@ -289,7 +290,7 @@ class Settings {
 				<a href="#pricing"  class="nav-tab"                 data-tab="pricing"><?php esc_html_e( 'Pricing', 'bushbreaks-maps' ); ?></a>
 				<a href="#filters"  class="nav-tab"                 data-tab="filters"><?php esc_html_e( 'Filters', 'bushbreaks-maps' ); ?></a>
 				<a href="#map"      class="nav-tab"                 data-tab="map"><?php esc_html_e( 'Map &amp; Theme', 'bushbreaks-maps' ); ?></a>
-				<a href="#feed"     class="nav-tab"                 data-tab="feed"><?php esc_html_e( 'Facebook feed', 'bushbreaks-maps' ); ?></a>
+				<a href="#feed"     class="nav-tab"                 data-tab="feed"><?php esc_html_e( 'Feeds', 'bushbreaks-maps' ); ?></a>
 				<a href="#tools"    class="nav-tab"                 data-tab="tools"><?php esc_html_e( 'Tools', 'bushbreaks-maps' ); ?></a>
 			</h2>
 
@@ -535,13 +536,13 @@ class Settings {
 
 				<div class="bbm-tab-content" data-tab="feed">
 					<h2><?php esc_html_e( 'Meta travel catalog feeds', 'bushbreaks-maps' ); ?></h2>
-					<p><?php esc_html_e( 'Two feeds built from your accommodation listings, in Meta\'s travel catalog XML format. Each lodge appears in both. Add each URL to the matching catalog type in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
+					<p><?php esc_html_e( 'Feeds built from your accommodation listings, in Meta\'s travel catalog XML format. Every lodge appears in each one. Add each URL to the matching catalog type in Commerce Manager.', 'bushbreaks-maps' ); ?></p>
 					<table class="form-table" role="presentation">
 						<tr>
 							<th><label for="bbm_feed_url_slug"><?php esc_html_e( 'Feed URL slug', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_url_slug" name="<?php echo $option_attr; ?>[feed_url_slug]" type="text" value="<?php echo esc_attr( $opts['feed_url_slug'] ); ?>" class="regular-text" placeholder="bushbreaks-feed">
-								<p class="description"><?php esc_html_e( 'The path segment used by all three feed URLs below, e.g. "weekendbreaks-feed" gives /weekendbreaks-feed/products.xml. Letters, numbers and hyphens only. If you change this, update the URL already submitted to Meta Commerce Manager.', 'bushbreaks-maps' ); ?></p>
+								<p class="description"><?php esc_html_e( 'The path segment used by every feed URL below, e.g. "weekendbreaks-feed" gives /weekendbreaks-feed/products.xml. Letters, numbers and hyphens only. If you change this, update the URLs already submitted to Meta Commerce Manager and Google.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>
@@ -587,6 +588,43 @@ class Settings {
 								<?php endif; ?>
 							</td>
 						</tr>
+					</table>
+
+					<h2><?php esc_html_e( 'Google feeds', 'bushbreaks-maps' ); ?></h2>
+					<p><?php esc_html_e( 'The same listings in the formats Google Ads accepts. They share every setting below with the Meta feeds.', 'bushbreaks-maps' ); ?></p>
+					<table class="form-table" role="presentation">
+						<tr>
+							<th><?php esc_html_e( 'Google Shopping feed URL', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'google' ) ); ?>">
+								<p class="description">
+									<?php esc_html_e( 'Add in Merchant Center → Data sources → "Add product source" → scheduled fetch. Feeds Shopping, Performance Max and Merchant Center-based dynamic remarketing. Province, reserve, categories, features and break type become custom_label_0/1/2/3/4.', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url( 'google' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Google Ads hotels feed URL', 'bushbreaks-maps' ); ?></th>
+							<td>
+								<input type="text" class="large-text" readonly onfocus="this.select();" value="<?php echo esc_attr( Feed::feed_url( 'google-hotels' ) ); ?>">
+								<p class="description">
+									<?php esc_html_e( 'Dynamic remarketing feed (CSV). Add in Google Ads → Tools → Business data → Data feeds → "Hotels and rentals" → scheduled upload.', 'bushbreaks-maps' ); ?>
+									<a href="<?php echo esc_url( Feed::feed_url( 'google-hotels' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Open feed', 'bushbreaks-maps' ); ?></a>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="bbm_feed_google_category"><?php esc_html_e( 'Google product category (optional)', 'bushbreaks-maps' ); ?></label></th>
+							<td>
+								<input id="bbm_feed_google_category" name="<?php echo $option_attr; ?>[feed_google_product_category]" type="text" value="<?php echo esc_attr( $opts['feed_google_product_category'] ); ?>" class="large-text">
+								<p class="description"><?php esc_html_e( 'A category from Google\'s own product taxonomy, output as google_product_category in the Shopping feed only. Leave empty unless Merchant Center asks for one — the taxonomy has no accommodation category, so no value fits by default.', 'bushbreaks-maps' ); ?></p>
+							</td>
+						</tr>
+					</table>
+
+					<h2><?php esc_html_e( 'Shared feed settings', 'bushbreaks-maps' ); ?></h2>
+					<p><?php esc_html_e( 'These apply to every feed above.', 'bushbreaks-maps' ); ?></p>
+					<table class="form-table" role="presentation">
 						<tr>
 							<th><label for="bbm_feed_title"><?php esc_html_e( 'Feed title', 'bushbreaks-maps' ); ?></label></th>
 							<td>
@@ -616,10 +654,10 @@ class Settings {
 							</td>
 						</tr>
 						<tr>
-							<th><label for="bbm_feed_product_type"><?php esc_html_e( 'Product type (Products feed)', 'bushbreaks-maps' ); ?></label></th>
+							<th><label for="bbm_feed_product_type"><?php esc_html_e( 'Product type', 'bushbreaks-maps' ); ?></label></th>
 							<td>
 								<input id="bbm_feed_product_type" name="<?php echo $option_attr; ?>[feed_product_type]" type="text" value="<?php echo esc_attr( $opts['feed_product_type'] ); ?>" class="regular-text">
-								<p class="description"><?php esc_html_e( 'Fixed g:product_type for every item in the Products feed (e.g. "Holiday Destinations"). Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Fixed product_type for every item in the Meta and Google product feeds (e.g. "Holiday Destinations"), and the Category column of the Google Ads hotels feed. Leave empty to omit.', 'bushbreaks-maps' ); ?></p>
 							</td>
 						</tr>
 						<tr>

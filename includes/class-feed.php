@@ -6,7 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Emits Meta (Facebook) catalog feeds built from the accommodation listings:
+ * Emits Meta (Facebook) and Google catalog feeds built from the accommodation
+ * listings.
+ *
+ * Meta (Commerce Manager → the matching catalog type → Data sources):
  *
  *  - Hotels feed       /{slug}/facebook.xml      (?bbm_feed=facebook)
  *    Meta travel XML: hotel_id, name, address, lat/long, base_price, image…
@@ -17,18 +20,33 @@ if ( ! defined( 'ABSPATH' ) ) {
  *    (Holiday Destinations) and custom_label_0-4 (province, reserve,
  *    categories, features, break type).
  *
+ * Google:
+ *
+ *  - Shopping feed   /{slug}/google.xml        (?bbm_feed=google)
+ *    Merchant Center product feed: RSS 2.0 + Google product namespace, using
+ *    Google's own attribute values (availability "in_stock", google_product_
+ *    category, title/description length caps). Feeds Shopping, Performance Max
+ *    and dynamic remarketing that runs off Merchant Center.
+ *  - Hotels feed     /{slug}/google-hotels.csv (?bbm_feed=google-hotels)
+ *    Google Ads dynamic remarketing "Hotels and rentals" business data feed:
+ *    CSV with Property ID / Property name / Final URL / Image URL / Price /
+ *    Star rating / Contextual keywords… Add under Tools → Business data →
+ *    Data feeds → "Scheduled upload".
+ *
+ * The Google feeds differ from the Meta ones only in attribute names and
+ * accepted values; both are built from the same Repository::listing_rows().
+ *
  * {slug} is the "Feed URL slug" setting (default "bushbreaks-feed"), so
  * multiple sites running this plugin can each have a distinct feed path.
  *
- * Each lodge is one entry in every feed. Paste a URL into Commerce Manager →
- * the matching catalog type → Data sources → "Scheduled feed".
+ * Each lodge is one entry in every feed.
  */
 class Feed {
 
 	public const QUERY_VAR = 'bbm_feed';
 
 	private const REWRITE_FLAG = 'bushbreaks_maps_feed_rewrites';
-	private const REWRITE_VER  = '5';
+	private const REWRITE_VER  = '6';
 
 	public function register(): void {
 		add_action( 'init', [ $this, 'add_rewrite_rule' ] );
@@ -66,6 +84,16 @@ class Feed {
 			'index.php?' . self::QUERY_VAR . '=products',
 			'top'
 		);
+		add_rewrite_rule(
+			'^' . $slug . '/google\.xml/?$',
+			'index.php?' . self::QUERY_VAR . '=google',
+			'top'
+		);
+		add_rewrite_rule(
+			'^' . $slug . '/google-hotels\.csv/?$',
+			'index.php?' . self::QUERY_VAR . '=google-hotels',
+			'top'
+		);
 
 		// Flush once when the rule set (or the configured slug) changes,
 		// so the pretty URLs resolve without forcing the admin to re-save
@@ -95,14 +123,27 @@ class Feed {
 	}
 
 	/**
+	 * File extension each feed type is served under.
+	 */
+	private const TYPE_EXTENSIONS = [
+		'facebook'      => 'xml',
+		'destinations'  => 'xml',
+		'products'      => 'xml',
+		'google'        => 'xml',
+		'google-hotels' => 'csv',
+	];
+
+	/**
 	 * Public, copy-pasteable feed URL for a given catalog type: 'facebook'
-	 * (Hotels), 'destinations' (Destinations) or 'products' (Products). Uses
-	 * the pretty permalink when available, otherwise the query arg.
+	 * (Meta Hotels), 'destinations' (Meta Destinations), 'products' (Meta
+	 * Products), 'google' (Merchant Center products) or 'google-hotels'
+	 * (Google Ads Hotels and rentals). Uses the pretty permalink when
+	 * available, otherwise the query arg.
 	 */
 	public static function feed_url( string $type = 'facebook' ): string {
-		$type_slug = in_array( $type, [ 'destinations', 'products' ], true ) ? $type : 'facebook';
+		$type_slug = isset( self::TYPE_EXTENSIONS[ $type ] ) ? $type : 'facebook';
 		if ( get_option( 'permalink_structure' ) ) {
-			return home_url( '/' . self::url_slug() . '/' . $type_slug . '.xml' );
+			return home_url( '/' . self::url_slug() . '/' . $type_slug . '.' . self::TYPE_EXTENSIONS[ $type_slug ] );
 		}
 		return add_query_arg( self::QUERY_VAR, $type_slug, home_url( '/' ) );
 	}
@@ -123,6 +164,14 @@ class Feed {
 		}
 		if ( $type === 'products' ) {
 			$this->render_products();
+			exit;
+		}
+		if ( $type === 'google' ) {
+			$this->render_google_products();
+			exit;
+		}
+		if ( $type === 'google-hotels' ) {
+			$this->render_google_hotels();
 			exit;
 		}
 	}
@@ -311,6 +360,278 @@ class Feed {
 	}
 
 	/**
+	 * Google Merchant Center product feed (RSS 2.0 + the Google product
+	 * namespace). Same shape as the Meta products feed, but with Google's own
+	 * accepted values: availability is "in_stock" rather than "in stock",
+	 * google_product_category is emitted when configured, title/description
+	 * are capped at Google's limits, and no item_group_id is sent (Google
+	 * treats a group id equal to the item id as a warning, where Meta needs
+	 * it to stop automatic item grouping).
+	 */
+	private function render_google_products(): void {
+		$opts     = Settings::all();
+		$currency = $this->currency( $opts );
+		$brand    = trim( (string) ( $opts['feed_brand'] ?? '' ) );
+		if ( $brand === '' ) {
+			$brand = (string) get_bloginfo( 'name' );
+		}
+		$product_type    = trim( (string) ( $opts['feed_product_type'] ?? '' ) );
+		$google_category = trim( (string) ( $opts['feed_google_product_category'] ?? '' ) );
+
+		$rows = Repository::listing_rows();
+		$this->flush_and_headers();
+
+		echo '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">' . "\n";
+		echo "<channel>\n";
+		printf( "<title>%s</title>\n", $this->cdata( $this->feed_title() ) );
+		printf( "<link>%s</link>\n", esc_url( home_url( '/' ) ) );
+		printf( "<description>%s</description>\n", $this->cdata( __( 'Accommodation product feed', 'bushbreaks-maps' ) ) );
+
+		foreach ( $rows as $row ) {
+			// Google rejects an item without an image or a price.
+			if ( $row['image'] === '' ) {
+				continue;
+			}
+			$price = $row['price'];
+			$sale  = $row['sale_price'];
+			if ( $price === null && $sale === null ) {
+				continue;
+			}
+			$sale_out = null;
+			if ( $price === null ) {
+				$price = $sale;
+			} elseif ( $sale !== null && $sale < $price ) {
+				$sale_out = $sale;
+			}
+			if ( (float) $price <= 0 ) {
+				continue;
+			}
+
+			$description = $row['description'] !== '' ? $row['description'] : $row['name'];
+
+			echo "<item>\n";
+			printf( "<g:id>%d</g:id>\n", (int) $row['id'] );
+			printf( "<g:title>%s</g:title>\n", $this->cdata( $this->clamp_text( $row['name'], 150 ) ) );
+			printf( "<g:description>%s</g:description>\n", $this->cdata( $this->clamp_text( $description, 5000 ) ) );
+			printf( "<g:link>%s</g:link>\n", esc_url( $row['url'] ) );
+			printf( "<g:image_link>%s</g:image_link>\n", esc_url( $row['image'] ) );
+			foreach ( (array) ( $row['gallery'] ?? [] ) as $extra ) {
+				printf( "<g:additional_image_link>%s</g:additional_image_link>\n", esc_url( $extra ) );
+			}
+			echo "<g:availability>in_stock</g:availability>\n";
+			echo "<g:condition>new</g:condition>\n";
+			// Lodges carry no GTIN/MPN barcodes.
+			echo "<g:identifier_exists>no</g:identifier_exists>\n";
+			printf( "<g:price>%s</g:price>\n", esc_html( $this->money( (float) $price, $currency ) ) );
+			if ( $sale_out !== null ) {
+				printf( "<g:sale_price>%s</g:sale_price>\n", esc_html( $this->money( (float) $sale_out, $currency ) ) );
+			}
+			printf( "<g:brand>%s</g:brand>\n", $this->cdata( $brand ) );
+
+			if ( $google_category !== '' ) {
+				printf( "<g:google_product_category>%s</g:google_product_category>\n", $this->cdata( $google_category ) );
+			}
+			if ( $product_type !== '' ) {
+				printf( "<g:product_type>%s</g:product_type>\n", $this->cdata( $product_type ) );
+			}
+
+			// Same custom labels as the Meta products feed, for campaign and
+			// listing-group filters in Google Ads.
+			if ( $row['province'] !== '' ) {
+				printf( "<g:custom_label_0>%s</g:custom_label_0>\n", $this->cdata( $this->clamp_label( $row['province'] ) ) );
+			}
+			if ( $row['reserve'] !== '' ) {
+				printf( "<g:custom_label_1>%s</g:custom_label_1>\n", $this->cdata( $this->clamp_label( $row['reserve'] ) ) );
+			}
+			if ( ! empty( $row['categories'] ) ) {
+				printf( "<g:custom_label_2>%s</g:custom_label_2>\n", $this->cdata( $this->clamp_label( implode( ', ', (array) $row['categories'] ) ) ) );
+			}
+			if ( ! empty( $row['features'] ) ) {
+				printf( "<g:custom_label_3>%s</g:custom_label_3>\n", $this->cdata( $this->clamp_label( (string) $row['features'] ) ) );
+			}
+			if ( ! empty( $row['break_type'] ) ) {
+				printf( "<g:custom_label_4>%s</g:custom_label_4>\n", $this->cdata( $this->clamp_label( (string) $row['break_type'] ) ) );
+			}
+			echo "</item>\n";
+		}
+
+		echo "</channel>\n";
+		echo "</rss>\n";
+	}
+
+	/**
+	 * Google Ads dynamic remarketing "Hotels and rentals" business data feed.
+	 * Unlike every other feed here this one is CSV, because that is the only
+	 * format Google Ads accepts for a business data feed. Only Property ID and
+	 * Property name are required by the spec; the rest are what the ad
+	 * actually renders, so rows without an image or a landing page are skipped
+	 * the same way the Meta feeds skip them.
+	 */
+	private function render_google_hotels(): void {
+		$opts     = Settings::all();
+		$currency = $this->currency( $opts );
+		$country  = trim( (string) ( $opts['feed_country'] ?? '' ) );
+		// Category groups properties for the ad's listing rules; the break
+		// type is the per-lodge grouping we have, with the fixed product type
+		// as the fallback for lodges that carry no break type.
+		$category = trim( (string) ( $opts['feed_product_type'] ?? '' ) );
+
+		$rows = Repository::listing_rows();
+
+		$this->discard_buffers();
+		nocache_headers();
+		if ( ! headers_sent() ) {
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: inline; filename="google-hotels.csv"' );
+		}
+
+		$this->csv_row(
+			[
+				'Property ID',
+				'Property name',
+				'Final URL',
+				'Image URL',
+				'Destination name',
+				'Description',
+				'Price',
+				'Sale price',
+				'Star rating',
+				'Category',
+				'Contextual keywords',
+				'Address',
+			]
+		);
+
+		foreach ( $rows as $row ) {
+			if ( $row['name'] === '' || $row['url'] === '' || $row['image'] === '' ) {
+				continue;
+			}
+
+			// Price is optional in this feed, so a lodge without one still
+			// gets an entry (with the columns left blank).
+			$price    = $row['price'];
+			$sale     = $row['sale_price'];
+			$sale_out = null;
+			if ( $price === null ) {
+				$price = $sale;
+			} elseif ( $sale !== null && $sale < $price ) {
+				$sale_out = $sale;
+			}
+
+			$star = '';
+			if ( $row['star_rating'] !== null ) {
+				$rating = (float) $row['star_rating'];
+				if ( $rating >= 1 && $rating <= 5 ) {
+					$star = $this->format_star( $rating );
+				}
+			}
+
+			$this->csv_row(
+				[
+					(string) (int) $row['id'],
+					$row['name'],
+					$row['url'],
+					$row['image'],
+					$this->destination_name( $row ),
+					$this->clamp_text( $row['description'] !== '' ? $row['description'] : $row['name'], 200 ),
+					$price !== null ? $this->money( (float) $price, $currency ) : '',
+					$sale_out !== null ? $this->money( (float) $sale_out, $currency ) : '',
+					$star,
+					trim( (string) ( $row['break_type'] ?? '' ) ) !== '' ? (string) $row['break_type'] : $category,
+					$this->contextual_keywords( $row ),
+					$this->google_address( $row, $country ),
+				]
+			);
+		}
+	}
+
+	/**
+	 * Most specific place name Google should show as the destination:
+	 * the reserve, else the province, else the city.
+	 */
+	private function destination_name( array $row ): string {
+		foreach ( [ 'reserve', 'province', 'city' ] as $key ) {
+			$value = trim( (string) ( $row[ $key ] ?? '' ) );
+			if ( $value !== '' ) {
+				return $value;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Semicolon-separated keyword list (Google's format for the "Contextual
+	 * keywords" column) built from the taxonomy terms and feature labels, with
+	 * duplicates and empties removed.
+	 */
+	private function contextual_keywords( array $row ): string {
+		$parts = [ $row['province'] ?? '', $row['reserve'] ?? '' ];
+		$parts = array_merge( $parts, (array) ( $row['categories'] ?? [] ) );
+		// features / break_type arrive already comma-joined.
+		foreach ( [ 'features', 'break_type' ] as $key ) {
+			$parts = array_merge( $parts, explode( ',', (string) ( $row[ $key ] ?? '' ) ) );
+		}
+
+		$seen = [];
+		foreach ( $parts as $part ) {
+			$part = trim( (string) $part );
+			if ( $part === '' ) {
+				continue;
+			}
+			$seen[ mb_strtolower( $part, 'UTF-8' ) ] = $part;
+		}
+
+		// Google caps the column at 10 keywords.
+		return implode( '; ', array_slice( array_values( $seen ), 0, 10 ) );
+	}
+
+	/**
+	 * Address in one of the forms Google accepts for this feed. "City, region,
+	 * country" is used when the taxonomy gives us a place; otherwise the
+	 * decimal lat/long pair, which Google also accepts. Street lines are left
+	 * out on purpose: the full-address form wants a postal code we don't hold,
+	 * and a partial street address parses worse than a plain city.
+	 */
+	private function google_address( array $row, string $country ): string {
+		if ( ! empty( $row['country'] ) ) {
+			$country = (string) $row['country'];
+		}
+
+		$parts = [];
+		foreach ( [ (string) $row['city'], (string) $row['province'] ] as $part ) {
+			$part = trim( $part );
+			if ( $part !== '' ) {
+				$parts[] = $part;
+			}
+		}
+
+		if ( $parts ) {
+			if ( trim( $country ) !== '' ) {
+				$parts[] = trim( $country );
+			}
+			return implode( ', ', $parts );
+		}
+
+		// No place name: a bare country is too vague to pin a property to, so
+		// fall back to the coordinates when we have them.
+		if ( $row['lat'] !== null && $row['lng'] !== null ) {
+			return $row['lat'] . ',' . $row['lng'];
+		}
+
+		return '';
+	}
+
+	/** Write one RFC 4180 CSV record. */
+	private function csv_row( array $values ): void {
+		$out = [];
+		foreach ( $values as $value ) {
+			$value = str_replace( [ "\r\n", "\r", "\n" ], ' ', (string) $value );
+			$out[] = '"' . str_replace( '"', '""', $value ) . '"';
+		}
+		echo implode( ',', $out ) . "\r\n";
+	}
+
+	/**
 	 * Open a Meta travel <listings> document (Hotels / Destinations).
 	 */
 	private function begin_xml(): void {
@@ -331,9 +652,7 @@ class Feed {
 	 * document"), send headers and emit the XML declaration.
 	 */
 	private function flush_and_headers(): void {
-		while ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
+		$this->discard_buffers();
 
 		nocache_headers();
 		if ( ! headers_sent() ) {
@@ -344,6 +663,16 @@ class Feed {
 		// Version stamp so the generating plugin version is visible in the feed
 		// (helps confirm an update/cache purge actually took effect).
 		echo '<!-- Bushbreaks Maps ' . esc_html( BUSHBREAKS_MAPS_VERSION ) . ' -->' . "\n";
+	}
+
+	/**
+	 * Drop every output buffer WordPress or a theme may have opened, so the
+	 * feed body starts at byte 0 of the response.
+	 */
+	private function discard_buffers(): void {
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
 	}
 
 	private function echo_address( array $row, string $country ): void {
@@ -399,16 +728,24 @@ class Feed {
 	}
 
 	/**
-	 * Meta caps custom_label_0-4 at 100 characters; longer values trigger
-	 * feed warnings. Cut at the limit, on a word boundary when possible.
+	 * Meta and Google both cap custom_label_0-4 at 100 characters; longer
+	 * values trigger feed warnings.
 	 */
 	private function clamp_label( string $value ): string {
-		if ( mb_strlen( $value, 'UTF-8' ) <= 100 ) {
+		return $this->clamp_text( $value, 100 );
+	}
+
+	/**
+	 * Cut a value to a character limit, on a word boundary when one falls
+	 * close enough to the end not to lose much.
+	 */
+	private function clamp_text( string $value, int $limit ): string {
+		if ( mb_strlen( $value, 'UTF-8' ) <= $limit ) {
 			return $value;
 		}
-		$cut = mb_substr( $value, 0, 100, 'UTF-8' );
+		$cut = mb_substr( $value, 0, $limit, 'UTF-8' );
 		$pos = mb_strrpos( $cut, ' ', 0, 'UTF-8' );
-		if ( $pos !== false && $pos > 60 ) {
+		if ( $pos !== false && $pos > (int) ( $limit * 0.6 ) ) {
 			$cut = mb_substr( $cut, 0, $pos, 'UTF-8' );
 		}
 		return rtrim( $cut, " ,;" );
