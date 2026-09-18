@@ -4,7 +4,7 @@ Tags: map, lodges, accommodation, pods, leaflet
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.9.31
+Stable tag: 0.9.32
 License: GPLv2 or later
 
 Display lodge accommodations from a Pods custom post type on a map, with search and a featured list.
@@ -31,6 +31,14 @@ The plugin reads from a Pods custom post type (default slug `accommodation`) and
 `[bushbreaks_map height="600px"]`
 
 == Changelog ==
+
+= 0.9.32 =
+* Two new Google feeds, built from the same listings as the Meta ones and sharing every feed setting:
+  * **Google Shopping feed** (`/{slug}/google.xml`) — a Merchant Center product feed. Same RSS shape as the Meta products feed but using Google's own values: `availability` is `in_stock`, `google_product_category` is emitted when set, title/description are capped at Google's 150/5000 limits, and no `item_group_id` is sent (Google warns when it equals the item id, where Meta needs it). Feeds Shopping, Performance Max and Merchant Center-based dynamic remarketing.
+  * **Google Ads hotels feed** (`/{slug}/google-hotels.csv`) — a "Hotels and rentals" business data feed for dynamic remarketing, in CSV because that is the only format Google Ads accepts for one. Columns: Property ID, Property name, Final URL, Image URL, Destination name, Description, Price, Sale price, Star rating, Category, Contextual keywords, Address.
+* New optional "Google product category" setting (Feeds tab), output as `google_product_category` in the Shopping feed only. Empty by default — Google's taxonomy has no accommodation category.
+* The Settings tab formerly called "Facebook feed" is now "Feeds", split into Meta feeds, Google feeds and the shared settings both use.
+* No change to the existing Meta feeds.
 
 = 0.9.31 =
 * New "Feed URL slug" setting (Facebook feed tab, default "bushbreaks-feed") — lets each site running this plugin use its own feed path, e.g. "weekendbreaks-feed" for /weekendbreaks-feed/products.xml on another site. Rewrite rules flush automatically when it's changed.
